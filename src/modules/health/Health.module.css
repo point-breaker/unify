@@ -1,0 +1,286 @@
+/* ... existing styles ... */
+/* Retain all previous styles, just adding new ones below */
+
+/* Dashboard layout */
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.subtitle {
+    color: var(--text-secondary);
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    align-items: center;
+}
+
+.btBtn,
+.simBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--info);
+    color: white;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btBtn:hover {
+    background: #2563EB;
+}
+
+.simBtn {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+}
+
+.simBtn:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.connectedBadge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.pulseDot {
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+/* Grid & Cards (Reusing existing layout classes) */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-md);
+}
+
+.card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.cardHeader h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.iconBox {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.metric {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-xs);
+}
+
+.value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.unit {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.chartContainer {
+    margin-top: auto;
+}
+
+/* Recommendations */
+.recommendations h3 {
+    font-size: 20px;
+    margin-bottom: var(--space-md);
+}
+
+.recGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-md);
+}
+
+.recCard {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.recCard:hover {
+    transform: scale(1.02);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+}
+
+.recIcon {
+    color: var(--success);
+    margin-top: 4px;
+}
+
+.recCard h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.recCard p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: var(--space-sm);
+}
+
+.actionBtn {
+    background: transparent;
+    color: var(--info);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0;
+}
+
+/* NEW: Lock Screen Polish */
+.lockScreen {
+    grid-column: span 3;
+    padding: 60px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Setup Form */
+.setupForm {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.setupInput {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 14px;
+    outline: none;
+    max-width: 120px;
+    transition: all 0.2s;
+}
+
+.setupInput:focus {
+    border-color: var(--accent, var(--info));
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.setupBtn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: var(--accent, var(--info));
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+
+.setupBtn:hover {
+    opacity: 0.9;
+}

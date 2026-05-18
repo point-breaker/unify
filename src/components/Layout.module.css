@@ -1,0 +1,157 @@
+.container {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg-app);
+}
+
+.sidebar {
+    display: none;
+    /* Hidden on mobile by default */
+    width: 240px;
+    background-color: var(--bg-card);
+    border-right: 1px solid var(--glass-border);
+    padding: var(--space-lg);
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 40px;
+    background: var(--grad-community);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.navItem:hover {
+    background-color: var(--glass-border);
+    color: var(--text-primary);
+}
+
+.active {
+    background-color: rgba(255, 255, 255, 0.05);
+    /* Subtle active background */
+    color: var(--text-primary);
+    border-left: 3px solid var(--info);
+    /* Or use gradient border idea */
+}
+
+/* Mobile Header */
+.mobileHeader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: rgba(15, 18, 24, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-md);
+    z-index: 100;
+}
+
+.mobileHeader .logo {
+    margin-bottom: 0;
+    font-size: 18px;
+}
+
+/* Main Content Area */
+.main {
+    flex: 1;
+    padding-top: 60px;
+    /* Space for top header */
+    padding-bottom: 80px;
+    /* Space for bottom nav */
+    width: 100%;
+}
+
+/* Desktop Breakpoint */
+@media (min-width: 768px) {
+    .mobileHeader {
+        display: none;
+    }
+
+    .sidebar {
+        display: flex;
+    }
+
+    .bottomNav {
+        display: none;
+    }
+
+    .main {
+        padding-bottom: 0;
+        padding-top: 0;
+    }
+
+    .content {
+        padding: var(--space-xl);
+    }
+}
+
+/* Mobile Bottom Navigation Styles */
+.bottomNav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background: rgba(15, 18, 24, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    padding: 0 8px;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+}
+
+.bottomNavItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    flex: 1;
+    min-width: 45px;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.bottomNavItem.active {
+    color: #38bdf8; /* var(--info) neon sky blue */
+}
+
+.bottomNavLabel {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    text-transform: capitalize;
+    white-space: nowrap;
+}

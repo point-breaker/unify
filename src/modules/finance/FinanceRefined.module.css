@@ -1,0 +1,280 @@
+/* FinanceRefined.module.css */
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.toggleContainer {
+    display: flex;
+    background: var(--bg-card);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--glass-border);
+    gap: 4px;
+}
+
+.toggleBtn {
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    background: transparent;
+}
+
+.toggleBtn.active {
+    background: var(--glass-highlight);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.actionBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    transition: all 0.2s;
+}
+
+.actionBtn:hover {
+    background: rgba(245, 158, 11, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Tab Group */
+.tabGroup {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    gap: 2px;
+}
+
+.tabBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: all 0.2s;
+    font-size: 14px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.activeTab {
+    background: var(--info);
+    color: white;
+}
+
+/* Cards */
+.overviewGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.balanceCard,
+.spendingCard {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.label {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.amount {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.change {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--success);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Allocator */
+.allocatorCard {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.allocatorHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: 24px;
+}
+
+.iconBox {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.inputGroup {
+    display: flex;
+    gap: 16px;
+}
+
+.moneyInput {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 18px;
+    color: white;
+}
+
+.splitPreview {
+    display: flex;
+    gap: 32px;
+    margin-top: 32px;
+    padding-top: 32px;
+    border-top: 1px solid var(--glass-border);
+    align-items: center;
+}
+
+.splitLegend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.legendLabel {
+    flex: 1;
+    color: var(--text-secondary);
+}
+
+.legendValue {
+    font-weight: 700;
+    color: white;
+}
+
+.allocateBtn {
+    background: var(--success);
+    color: #000;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    transition: transform 0.2s;
+}
+
+.allocateBtn:hover {
+    transform: scale(1.02);
+}
+
+/* Envelopes */
+.envelopeGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-md);
+}
+
+.envelopeCard {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.envHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.envAmount {
+    color: var(--text-secondary);
+}
+
+.progressBar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.fadeIn {
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

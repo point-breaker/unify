@@ -1,0 +1,112 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.hero h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: var(--space-xs);
+    background: linear-gradient(135deg, #F0F4F8 0%, #9BA3AF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero p {
+    color: var(--text-secondary);
+    font-size: 18px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-lg);
+}
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    background: var(--bg-card-hover);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Gradient Top Border/Glow */
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--accent);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.iconBox {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cardHeader h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.metric {
+    margin-top: var(--space-sm);
+}
+
+.value {
+    display: block;
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+
+.label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.footer {
+    margin-top: auto;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.card:hover .footer {
+    color: var(--text-primary);
+}

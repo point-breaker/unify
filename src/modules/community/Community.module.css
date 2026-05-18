@@ -1,0 +1,153 @@
+/* ... existing styles ... */
+/* Append these, or replace if cleaner access. I will append to existing with new classes */
+
+.weatherCard {
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    color: white;
+    margin-bottom: var(--space-xl);
+    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+.unitToggle {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.unitToggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.adviceBadge {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.weatherInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.temp {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.condition {
+    font-size: 18px;
+    opacity: 0.9;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.statItem {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Ensure other classes are present */
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.locationBadge {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--bg-card);
+    padding: 8px 12px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-xl);
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.alertItem {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    align-items: flex-start;
+}
+
+.alertItem.critical {
+    border-left: 3px solid var(--danger);
+}
+
+.alertItem.info {
+    border-left: 3px solid var(--info);
+}
+
+.alertContent h4 {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 15px;
+}
+
+.alertContent p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}

@@ -1353,7 +1353,7 @@ const FamilyDashboard = () => {
                     </div>
 
                     {/* Navigation Tab Bar */}
-                    <div style={{
+                    <div className="family-scroll-tabs" style={{
                         display: 'flex', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '12px',
                         padding: '6px', gap: '6px', marginBottom: '30px', border: '1px solid rgba(255,255,255,0.05)'
                     }}>
@@ -1405,7 +1405,7 @@ const FamilyDashboard = () => {
 
                     {/* Active Tab rendering */}
                     {activeTab === 'dashboard' && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px', flexWrap: 'wrap' }}>
+                        <div className="family-grid-panel" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px', flexWrap: 'wrap' }}>
                             
                             {/* Family Roster List and Leaderboard Podium */}
                             <div>
@@ -1414,7 +1414,7 @@ const FamilyDashboard = () => {
                                 </h3>
 
                                 {/* 3D Podium Render */}
-                                <div style={{
+                                <div className="family-podium" style={{
                                     background: 'rgba(30, 41, 59, 0.25)', border: '1px solid rgba(255, 255, 255, 0.05)',
                                     borderRadius: '20px', padding: '30px', display: 'flex', justifyContent: 'center',
                                     alignItems: 'flex-end', gap: '15px', height: '240px', marginBottom: '30px'
@@ -1476,7 +1476,7 @@ const FamilyDashboard = () => {
                                         const rBadge = getRoleBadgeStyle(m.role);
                                         const isSelf = m.id === currentUser?.uid;
                                         return (
-                                            <div key={m.id} style={{
+                                            <div key={m.id} className="family-member-card" style={{
                                                 background: 'rgba(30, 41, 59, 0.25)', border: '1px solid rgba(255,255,255,0.06)',
                                                 borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center',
                                                 justifyContent: 'space-between', transition: 'all 0.2s'
@@ -1500,7 +1500,7 @@ const FamilyDashboard = () => {
                                                 </div>
                                                 
                                                 {/* Stats summary and Role tag */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                                <div className="family-stats-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                                                     <div style={{ display: 'flex', gap: '16px', fontSize: '13px' }}>
                                                         {m.permissions?.health !== false ? (
                                                             <div style={{ textAlign: 'right' }}>
@@ -1616,7 +1616,7 @@ const FamilyDashboard = () => {
                                     const canModify = (isSelf && m.role !== 'Child') || isAdmin || isParent;
 
                                     return (
-                                        <div key={m.id} style={{
+                                        <div key={m.id} className="family-rbac-row" style={{
                                             background: 'rgba(15, 23, 42, 0.4)', padding: '20px', borderRadius: '16px',
                                             border: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center',
                                             justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px'
@@ -1631,7 +1631,7 @@ const FamilyDashboard = () => {
                                                 </span>
                                             </div>
 
-                                            <div style={{ display: 'flex', gap: '20px' }}>
+                                            <div className="family-rbac-toggles" style={{ display: 'flex', gap: '20px' }}>
                                                 {/* Health share toggle */}
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                     <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>Health Stats</span>
@@ -1686,7 +1686,7 @@ const FamilyDashboard = () => {
 
                     {/* Challenges and wellness goals Tab */}
                     {activeTab === 'challenges' && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '30px' }}>
+                        <div className="family-grid-panel" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '30px' }}>
                             <div>
                                 <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'white', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <Award size={22} color="#34d399" /> Shared Goals & Wellness Challenges
@@ -1918,7 +1918,7 @@ const FamilyDashboard = () => {
 
                     {/* Emergency Contacts Directory Tab */}
                     {activeTab === 'emergency' && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
+                        <div className="family-grid-panel" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
                             {/* Directory List */}
                             <div style={{
                                 background: 'rgba(30, 41, 59, 0.25)', border: '1px solid rgba(255, 255, 255, 0.08)',

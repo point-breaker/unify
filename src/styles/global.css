@@ -68,4 +68,99 @@ a {
     h1, h2, h3, h4 {
         word-break: break-word;
     }
+
+    /* Family Hub Mobile Responsive Overrides */
+    .family-scroll-tabs {
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        display: flex !important;
+        gap: 8px !important;
+        padding: 6px !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none !important; /* Firefox */
+    }
+    
+    .family-scroll-tabs::-webkit-scrollbar {
+        display: none !important; /* Safari & Chrome */
+    }
+    
+    .family-scroll-tabs button {
+        flex: 0 0 auto !important;
+        min-width: max-content !important;
+        padding: 10px 16px !important;
+        text-align: center !important;
+    }
+    
+    .family-grid-panel {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    
+    .family-podium {
+        padding: 20px 10px !important;
+        gap: 8px !important;
+        height: 200px !important;
+    }
+    
+    .family-podium > div {
+        width: 80px !important; /* Scale down podium blocks slightly */
+    }
+    
+    .family-podium > div:nth-child(2) {
+        width: 90px !important; /* 1st place block */
+    }
+    
+    .family-member-card {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 16px !important;
+        padding: 16px !important;
+    }
+    
+    .family-stats-wrapper {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        width: 100% !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 12px;
+    }
+    
+    .family-stats-wrapper > div:first-child {
+        display: flex !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        gap: 16px !important;
+    }
+    
+    .family-stats-wrapper > div:first-child > div {
+        text-align: left !important;
+        flex: 1 !important;
+    }
+    
+    .family-stats-wrapper > span {
+        align-self: flex-start !important;
+    }
+    
+    .family-rbac-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 16px !important;
+    }
+    
+    .family-rbac-toggles {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        width: 100% !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 12px;
+    }
+    
+    .family-rbac-toggles > div {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
 }

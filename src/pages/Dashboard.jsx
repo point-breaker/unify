@@ -3,17 +3,18 @@ import { Link } from 'react-router-dom';
 import { Activity, Wallet, Users, ArrowRight, Sun, Cloud, CloudRain } from 'lucide-react';
 import styles from './Dashboard.module.css';
 import { useHealth } from '../contexts/HealthContext';
-import { useFinance } from '../contexts/FinanceContext';
+// import { useFinance } from '../contexts/FinanceContext';
 import { useCommunity } from '../contexts/CommunityContext';
 import { useLocation } from '../contexts/LocationContext';
 
 const Dashboard = () => {
     const { healthState } = useHealth();
-    const { financeState } = useFinance();
+    // const { financeState } = useFinance();
     const { communityState, unit } = useCommunity();
     const { location } = useLocation();
 
     // Helper for Weather Icon (Duplicated temporarily, or could be in utils)
+    /*
     const renderWeatherIcon = (code) => {
         if (!code && code !== 0) return <Sun size={24} color="white" />;
         if (code <= 3) return <Sun size={24} color="white" />;
@@ -27,6 +28,7 @@ const Dashboard = () => {
         if (code >= 80) return 'Rainy';
         return 'Fair';
     };
+    */
 
     return (
         <div className={styles.container}>

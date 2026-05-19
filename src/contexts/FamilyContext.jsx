@@ -20,6 +20,39 @@ const saveSession = (session) => { localStorage.setItem(SESSION_KEY, JSON.string
 export const FamilyProvider = ({ children }) => {
     const { currentUser } = useAuth();
 
+    // Internal helper to sync specific data to family doc
+    async function syncUserStatsToFamily(familyCode, uid, type, data) {
+        try {
+            const familyRef = doc(db, 'families', familyCode);
+            // Read fresh to avoid race in 'members' array
+            const familySnap = await getDoc(familyRef);
+            if (!familySnap.exists()) return;
+
+            const famData = familySnap.data();
+            const members = famData.members || [];
+
+            let changed = false;
+            const updatedMembers = members.map(m => {
+                if (m.id === uid) {
+                    const existingData = m[type] || {};
+                    // Deep compare or just overwrite? Overwrite is safer for "latest wins"
+                    // Check if actually different to avoid write loops
+                    if (JSON.stringify(existingData) !== JSON.stringify({ ...existingData, ...data })) {
+                        changed = true;
+                        return { ...m, [type]: { ...existingData, ...data } };
+                    }
+                }
+                return m;
+            });
+
+            if (changed) {
+                await updateDoc(familyRef, { members: updatedMembers });
+            }
+        } catch (e) {
+            console.error("Sync to family failed:", e);
+        }
+    }
+
     // We derive 'familyState' from the DB + Session
     const [familyState, setFamilyState] = useState({
         subscription: { status: 'free', tier: 'free' },
@@ -35,7 +68,7 @@ export const FamilyProvider = ({ children }) => {
     // Hook 1: Listen to User Document for Family Code & Stats Sync
     useEffect(() => {
         if (!currentUser) {
-            setUserFamilyCode(null);
+            Promise.resolve().then(() => setUserFamilyCode(null));
             return;
         }
 
@@ -70,13 +103,13 @@ export const FamilyProvider = ({ children }) => {
     useEffect(() => {
         if (currentUser) {
             if (!userFamilyCode) {
-                setFamilyState({
+                Promise.resolve().then(() => setFamilyState({
                     subscription: { status: 'free', tier: 'free' },
                     role: null,
                     familyCode: '',
                     members: [],
                     challenges: []
-                });
+                }));
                 return;
             }
 
@@ -373,39 +406,6 @@ export const FamilyProvider = ({ children }) => {
                 });
                 return { ...prev, members: updatedMembers };
             });
-        }
-    };
-
-    // Internal helper to sync specific data to family doc
-    const syncUserStatsToFamily = async (familyCode, uid, type, data) => {
-        try {
-            const familyRef = doc(db, 'families', familyCode);
-            // Read fresh to avoid race in 'members' array
-            const familySnap = await getDoc(familyRef);
-            if (!familySnap.exists()) return;
-
-            const famData = familySnap.data();
-            const members = famData.members || [];
-
-            let changed = false;
-            const updatedMembers = members.map(m => {
-                if (m.id === uid) {
-                    const existingData = m[type] || {};
-                    // Deep compare or just overwrite? Overwrite is safer for "latest wins"
-                    // Check if actually different to avoid write loops
-                    if (JSON.stringify(existingData) !== JSON.stringify({ ...existingData, ...data })) {
-                        changed = true;
-                        return { ...m, [type]: { ...existingData, ...data } };
-                    }
-                }
-                return m;
-            });
-
-            if (changed) {
-                await updateDoc(familyRef, { members: updatedMembers });
-            }
-        } catch (e) {
-            console.error("Sync to family failed:", e);
         }
     };
 

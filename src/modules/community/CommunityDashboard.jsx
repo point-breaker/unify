@@ -18,6 +18,7 @@ const CommunityDashboard = () => {
     // const [uv, setUv] = useState(null);
 
     const [alerts, setAlerts] = useState([]);
+    const [events, setEvents] = useState([]);
     
     const { currentUser } = useAuth();
     const [communityStats, setCommunityStats] = useState({
@@ -155,41 +156,7 @@ const CommunityDashboard = () => {
         }
     }, [location.city]);
 
-    // --- Helpers ---
-    const getTemp = () => {
-        if (!weather) return '--';
-        return Math.round(unit === 'C' ? weather.tempC : weather.tempF);
-    };
-
-    const getAdvice = () => {
-        // Use logic now in Context, or fallback to local
-        return currentAdvice || "Loading advice...";
-    };
-
-    const getAqiStatus = (val) => {
-        if (val <= 50) return { label: 'Good', color: '#10B981' };
-        if (val <= 100) return { label: 'Moderate', color: '#F59E0B' };
-        if (val <= 150) return { label: 'Unhealthy for Sensitive', color: '#F97316' };
-        return { label: 'Unhealthy', color: '#EF4444' };
-    };
-
-    const uvLevel = (val) => val > 7 ? 'High' : val > 2 ? 'Moderate' : 'Low';
-
-    // --- Render ---
-    if (loading) return <div style={{ padding: 20 }}>Detecting location...</div>;
-
-    const aqiStatus = getAqiStatus(aqi || 0);
-
-    const renderWeatherIcon = (code) => {
-        if (code === undefined) return <Cloud size={64} color="white" />;
-        if (code <= 3) return <Sun size={64} color="#FDB813" />;
-        if (code <= 60) return <Cloud size={64} color="#B0C4DE" />;
-        return <CloudRain size={64} color="#60A5FA" />;
-    };
-
     // --- Events Fetching Logic ---
-    const [events, setEvents] = useState([]);
-
     useEffect(() => {
         if (location.city && location.city !== 'Detecting...') {
             const fetchEvents = async () => {
@@ -229,6 +196,40 @@ const CommunityDashboard = () => {
             fetchEvents();
         }
     }, [location.city]);
+
+    // --- Helpers ---
+    const getTemp = () => {
+        if (!weather) return '--';
+        return Math.round(unit === 'C' ? weather.tempC : weather.tempF);
+    };
+
+    const getAdvice = () => {
+        // Use logic now in Context, or fallback to local
+        return currentAdvice || "Loading advice...";
+    };
+
+    const getAqiStatus = (val) => {
+        if (val <= 50) return { label: 'Good', color: '#10B981' };
+        if (val <= 100) return { label: 'Moderate', color: '#F59E0B' };
+        if (val <= 150) return { label: 'Unhealthy for Sensitive', color: '#F97316' };
+        return { label: 'Unhealthy', color: '#EF4444' };
+    };
+
+    const uvLevel = (val) => val > 7 ? 'High' : val > 2 ? 'Moderate' : 'Low';
+
+    // --- Render ---
+    if (loading) return <div style={{ padding: 20 }}>Detecting location...</div>;
+
+    const aqiStatus = getAqiStatus(aqi || 0);
+
+    const renderWeatherIcon = (code) => {
+        if (code === undefined) return <Cloud size={64} color="white" />;
+        if (code <= 3) return <Sun size={64} color="#FDB813" />;
+        if (code <= 60) return <Cloud size={64} color="#B0C4DE" />;
+        return <CloudRain size={64} color="#60A5FA" />;
+    };
+
+
 
     // Derived Weather Icon
 

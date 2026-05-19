@@ -11,12 +11,18 @@ import {
     Smartphone, Check, Lock, Unlock, Zap, HeartHandshake, Eye, EyeOff
 } from 'lucide-react';
 
+const DEFAULT_CONTACTS = [
+    { name: 'Dr. Sarah Jenkins (Family Physician)', phone: '+91 98765 43210', relationship: 'Doctor' },
+    { name: 'City Hospital Emergency', phone: '102', relationship: 'Hospital' },
+    { name: 'Metropolitan Ambulance', phone: '108', relationship: 'Ambulance' }
+];
+
 const FamilyDashboard = () => {
     const { currentUser } = useAuth();
     const { healthState, updateHealth } = useHealth();
     const { 
-        familyState, upgradeToFamily, joinFamily, leaveFamily, 
-        toggleSharing, getHouseholdStats, getLeaderboard, updateFamilyMemberStats,
+        familyState, upgradeToFamily, joinFamily, // leaveFamily, 
+        toggleSharing, getHouseholdStats, getLeaderboard, // updateFamilyMemberStats,
         createChallenge, joinChallenge, markNotificationsRead
     } = useFamily();
 
@@ -31,8 +37,8 @@ const FamilyDashboard = () => {
     const [challengeTarget, setChallengeTarget] = useState(50000);
 
     // BLE direct wearable states
-    const [isFamBleConnected, setIsFamBleConnected] = useState(false);
-    const [famBleDevice, setFamBleDevice] = useState('');
+    // const [isFamBleConnected, setIsFamBleConnected] = useState(false);
+    // const [famBleDevice, setFamBleDevice] = useState('');
     const [showSyncModal, setShowSyncModal] = useState(false);
     const [selectedDeviceToSync, setSelectedDeviceToSync] = useState(null);
 
@@ -59,14 +65,24 @@ const FamilyDashboard = () => {
     const [errorMessage, setErrorMessage] = useState('');
 
     // Shared Goals State
+    /*
     const [sharedGoals, setSharedGoals] = useState([
         { id: 1, title: "Household Steps Challenge", current: 28450, target: 50000, type: "steps", icon: Activity },
         { id: 2, title: "Combined Savings Pool", current: 1450, target: 3000, type: "finance", icon: Wallet },
         { id: 3, title: "Sleep Rest Target (Average)", current: 7.2, target: 8.0, type: "health", icon: Heart }
     ]);
+    */
 
     // Active SOS Alert state (real-time synchronized from Firestore)
     const [sosState, setSosState] = useState(null);
+
+    // Wearable Sync Simulator State
+    const [syncingDevice, setSyncingDevice] = useState(null);
+    const [syncedDevices, setSyncedDevices] = useState({
+        "Apple Watch": "Synced 4 mins ago",
+        "Fitbit Luxe": "Not Connected",
+        "Garmin Venu": "Synced 1 hour ago"
+    });
 
     // Watch listener for SOS state inside the family
     useEffect(() => {
@@ -80,7 +96,7 @@ const FamilyDashboard = () => {
             });
             return () => unsubscribe();
         } else {
-            setSosState(null);
+            Promise.resolve().then(() => setSosState(null));
         }
     }, [familyState.familyCode]);
 
@@ -90,7 +106,7 @@ const FamilyDashboard = () => {
         if (hash && hash.includes('access_token')) {
             const params = new URLSearchParams(hash.substring(1));
             const token = params.get('access_token');
-            const userId = params.get('user_id');
+            // const userId = params.get('user_id');
             
             // Clear hash immediately for clean aesthetic routing
             window.history.pushState("", document.title, window.location.pathname + window.location.search);
@@ -151,33 +167,19 @@ const FamilyDashboard = () => {
         }
     }, [currentUser]);
 
-    // Emergency Contacts List
-    const DEFAULT_CONTACTS = [
-        { name: 'Dr. Sarah Jenkins (Family Physician)', phone: '+91 98765 43210', relationship: 'Doctor' },
-        { name: 'City Hospital Emergency', phone: '102', relationship: 'Hospital' },
-        { name: 'Metropolitan Ambulance', phone: '108', relationship: 'Ambulance' }
-    ];
     const [emergencyContacts, setEmergencyContacts] = useState(DEFAULT_CONTACTS);
 
     useEffect(() => {
         if (familyState?.contacts && familyState.contacts.length > 0) {
-            setEmergencyContacts(familyState.contacts);
+            Promise.resolve().then(() => setEmergencyContacts(familyState.contacts));
         } else {
-            setEmergencyContacts(DEFAULT_CONTACTS);
+            Promise.resolve().then(() => setEmergencyContacts(DEFAULT_CONTACTS));
         }
     }, [familyState?.contacts]);
 
     const [newContactName, setNewContactName] = useState('');
     const [newContactPhone, setNewContactPhone] = useState('');
     const [newContactRel, setNewContactRel] = useState('');
-
-    // Wearable Sync Simulator State
-    const [syncingDevice, setSyncingDevice] = useState(null);
-    const [syncedDevices, setSyncedDevices] = useState({
-        "Apple Watch": "Synced 4 mins ago",
-        "Fitbit Luxe": "Not Connected",
-        "Garmin Venu": "Synced 1 hour ago"
-    });
 
     // Helper: Trigger custom alert banners
     const triggerBanner = (message, isError = false) => {
@@ -237,8 +239,6 @@ const FamilyDashboard = () => {
                     updateHealth({ heartRate: heartRate });
                 });
                 if (success) {
-                    setIsFamBleConnected(true);
-                    setFamBleDevice(bluetoothManager.device?.name || 'Smartwatch BLE');
                     
                     // Pull actual live steps from user state, synced with BLE heart active rate
                     const actualSteps = healthState?.steps || 3420; // fallback to active count
@@ -386,7 +386,7 @@ const FamilyDashboard = () => {
                 const updatedContacts = [...(familyState.contacts || []), newContact];
                 await updateDoc(familyRef, { contacts: updatedContacts });
                 triggerBanner("Added emergency contact!");
-            } catch (err) {
+            } catch {
                 setEmergencyContacts(prev => [...prev, newContact]);
             }
         } else {
@@ -543,7 +543,7 @@ const FamilyDashboard = () => {
             )}
 
             {/* 🔔 Real-Time Join Notification Banner (Admin Only) */}
-            {(isAdmin || isParent) && familyState.notifications?.filter(n => !n.read && n.type === 'member_joined').length > 0 && (
+            {(isAdmin || isParent) && (familyState.notifications || []).filter(n => !n.read && n.type === 'member_joined').length > 0 && (
                 <div style={{
                     background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%)',
                     border: '1px solid rgba(52, 211, 153, 0.5)', padding: '16px 20px', borderRadius: '16px',
@@ -561,15 +561,15 @@ const FamilyDashboard = () => {
                         </div>
                         <div>
                             <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '700' }}>
-                                🎉 New Member{familyState.notifications.filter(n => !n.read && n.type === 'member_joined').length > 1 ? 's' : ''} Joined!
+                                🎉 New Member{(familyState.notifications || []).filter(n => !n.read && n.type === 'member_joined').length > 1 ? 's' : ''} Joined!
                             </h4>
                             <div style={{ fontSize: '13px', opacity: 0.9 }}>
-                                {familyState.notifications
+                                {(familyState.notifications || [])
                                     .filter(n => !n.read && n.type === 'member_joined')
                                     .map((n, i) => (
                                         <span key={n.id}>
                                             <strong>{n.memberName}</strong> joined as <strong>{n.memberRole}</strong>
-                                            {i < familyState.notifications.filter(n2 => !n2.read && n2.type === 'member_joined').length - 1 ? ' • ' : ''}
+                                            {i < (familyState.notifications || []).filter(n2 => !n2.read && n2.type === 'member_joined').length - 1 ? ' • ' : ''}
                                         </span>
                                     ))
                                 }

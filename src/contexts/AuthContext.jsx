@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
 
         return new RecaptchaVerifier(auth, container, {
             'size': 'invisible',
-            'callback': (response) => {
+            'callback': () => {
                 // reCAPTCHA solved
             }
         });
@@ -54,11 +54,22 @@ export const AuthProvider = ({ children }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to send verification code');
-            return { success: true, ...data };
+            if (res.ok) {
+                const data = await res.json();
+                return { success: true, ...data };
+            }
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.warn('[Auth] Server API returned non-OK status. Falling back to local mock OTP in development.');
+                return { success: true, mock: true, otp: '123456', emailSent: false };
+            }
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || `Server responded with status ${res.status}`);
         } catch (e) {
             console.error('[Auth] sendOtpEmail error:', e);
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.warn('[Auth] sendOtpEmail failed. Falling back to local mock OTP in development.');
+                return { success: true, mock: true, otp: '123456', emailSent: false };
+            }
             return { success: false, message: e.message };
         }
     };

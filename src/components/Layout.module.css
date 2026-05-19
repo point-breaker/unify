@@ -1,7 +1,7 @@
 .container {
     display: flex;
     min-height: 100vh;
-    background-color: var(--bg-app);
+    background: var(--bg-app);
 }
 
 .sidebar {
@@ -65,7 +65,7 @@
     left: 0;
     right: 0;
     height: 60px;
-    background: rgba(15, 18, 24, 0.95);
+    background: rgba(15, 18, 35, 0.9);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--glass-border);
     display: flex;
@@ -126,7 +126,7 @@
     left: 0;
     right: 0;
     height: 65px;
-    background: rgba(15, 18, 24, 0.95);
+    background: rgba(15, 18, 35, 0.9);
     backdrop-filter: blur(20px);
     border-top: 1px solid var(--glass-border);
     display: flex;

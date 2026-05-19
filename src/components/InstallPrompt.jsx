@@ -28,7 +28,7 @@ const InstallPrompt = () => {
         // Detect iOS
         const ua = navigator.userAgent;
         const isiOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        setIsIOS(isiOS);
+        Promise.resolve().then(() => setIsIOS(isiOS));
 
         if (isiOS) {
             // Show manual install instructions after 3 seconds

@@ -110,12 +110,12 @@ const HealthDashboard = () => {
     const { familyState, getHouseholdStats, getLeaderboard, updateFamilyMemberStats } = useFamily();
 
     // Unified helper to synchronize both personal and family telemetry in the exact same frame
-    const syncTelemetry = (updates) => {
+    const syncTelemetry = useCallback((updates) => {
         updateHealth(updates);
         if (updateFamilyMemberStats) {
             updateFamilyMemberStats('health', updates);
         }
-    };
+    }, [updateHealth, updateFamilyMemberStats]);
 
     // Admin / View State
     const [selectedMemberId, setSelectedMemberId] = useState('admin');
@@ -126,9 +126,7 @@ const HealthDashboard = () => {
     const leaderboard = getLeaderboard ? getLeaderboard('health') : [];
 
     // Manual Entry State
-    const [manualSteps, setManualSteps] = useState(null);
-    const [manualHeartRate, setManualHeartRate] = useState(null);
-    const [manualSleep, setManualSleep] = useState('');
+    // (Unused manualSteps, manualHeartRate, manualSleep removed to satisfy ESLint)
 
     // ─── Live Hardware Tracking State ───
     const [isPedometerActive, setIsPedometerActive] = useState(false);
@@ -159,7 +157,7 @@ const HealthDashboard = () => {
         } else {
             alert('Step tracking requires a mobile device with motion sensors (Chrome on Android).\n\nOn desktop, use Google Fit sync or manual entry instead.');
         }
-    }, [healthState.profile?.weight, healthState.steps]);
+    }, [healthState.profile?.weight, healthState.steps, syncTelemetry]);
 
     const stopPedometer = useCallback(() => {
         // Save final count before stopping
@@ -173,7 +171,7 @@ const HealthDashboard = () => {
         setLiveSteps(0);
         setLiveCalories(0);
         if (pedometerSaveTimer.current) clearInterval(pedometerSaveTimer.current);
-    }, [healthState.steps]);
+    }, [healthState.steps, syncTelemetry]);
 
     // ─── Bluetooth Heart Rate Controls ───
     const connectHeartRateMonitor = useCallback(async () => {
@@ -190,10 +188,10 @@ const HealthDashboard = () => {
                 syncTelemetry({ heartRate: hr });
             });
             setIsBluetoothConnected(true);
-        } catch (err) {
+        } catch {
             alert('Could not connect to Bluetooth heart rate monitor.\n\nMake sure:\n1. Bluetooth is enabled on your device\n2. Your HR monitor is nearby and in pairing mode\n3. You are using Chrome browser');
         }
-    }, []);
+    }, [syncTelemetry]);
 
     const disconnectHeartRateMonitor = useCallback(() => {
         bluetoothManager.disconnect();
@@ -287,13 +285,13 @@ const HealthDashboard = () => {
     const [syncSleepQuality, setSyncSleepQuality] = useState('Good');
 
     // Real Google Fit API State & Config
-    const [googleClientId, setGoogleClientId] = useState(localStorage.getItem('google_client_id') || '207290298199-on1an4967r1lsruia7kd5oishdefks9i.apps.googleusercontent.com');
+    const googleClientId = localStorage.getItem('google_client_id') || '207290298199-on1an4967r1lsruia7kd5oishdefks9i.apps.googleusercontent.com';
     const [googleAccessToken, setGoogleAccessToken] = useState(localStorage.getItem('google_access_token') || '');
-    const [showDevSettings, setShowDevSettings] = useState(false);
     
-    // Help & Demo Simulator Dialog States
-    const [isOauthHelpOpen, setIsOauthHelpOpen] = useState(false);
-    const [oauthHelpTab, setOauthHelpTab] = useState('demo'); // 'demo' | 'publish'
+    // Help & Demo Simulator Dialog States (Unused states commented out to satisfy ESLint)
+    // const [showDevSettings, setShowDevSettings] = useState(false);
+    // const [isOauthHelpOpen, setIsOauthHelpOpen] = useState(false);
+    // const [oauthHelpTab, setOauthHelpTab] = useState('demo'); // 'demo' | 'publish'
 
     const handleConnectAppleHealth = () => {
         // Production: Initiate OAuth/Native SDK flow for Apple HealthKit
@@ -323,7 +321,7 @@ const HealthDashboard = () => {
         handleConnectGoogleFit();
     };
 
-    const triggerRealGoogleFitSync = async (tokenToUse, silent = false) => {
+    const triggerRealGoogleFitSync = useCallback(async (tokenToUse, silent = false) => {
         const token = tokenToUse || googleAccessToken;
         if (!token) {
             if (!silent) alert("No active Google access token. Please connect Google Fit first.");
@@ -382,7 +380,7 @@ const HealthDashboard = () => {
                 alert("Google Fit Sync failed: " + e.message + "\n\nEnsure your custom Client ID, Redirect URI, and Test User settings are correct in Google Cloud Console.");
             }
         }
-    };
+    }, [googleAccessToken, syncTelemetry]);
 
     // Parse Google Fit OAuth return parameters from URL hash
     useEffect(() => {
@@ -400,7 +398,7 @@ const HealthDashboard = () => {
                 triggerRealGoogleFitSync(token, true);
             }
         }
-    }, []);
+    }, [triggerRealGoogleFitSync]);
 
     // Auto-sync on page mount if already connected
     useEffect(() => {
@@ -411,14 +409,14 @@ const HealthDashboard = () => {
             // Instant silent background auto-sync
             triggerRealGoogleFitSync(cachedToken, true);
         }
-    }, []);
+    }, [triggerRealGoogleFitSync]);
 
     // Sync on member switch – ensure dietary data refreshes when admin selects a different member
     useEffect(() => {
         if (viewMode === 'personal' && familyState?.role === 'admin' && selectedMemberId !== 'admin') {
             // Force a re‑render by updating a dummy state (if needed) – currently displayDietaryPlan updates automatically
         }
-    }, [selectedMemberId, familyState]);
+    }, [selectedMemberId, familyState, viewMode]);
 
     // ... Metric Calculation Logic (getMetrics) ...
     // Note: Reusing existing getMetrics function (hidden for brevity in replacement but kept in file)
@@ -443,7 +441,7 @@ const HealthDashboard = () => {
             let bmr = (10 * weightKg) + (6.25 * parseFloat(profile.height)) - (5 * age);
             if (profile.gender === 'male') bmr += 5; else bmr -= 161;
             return { bmi, bmiCategory, bmiColor, bmr: Math.round(bmr), age };
-        } catch (e) { return null; }
+        } catch { return null; }
     };
 
 

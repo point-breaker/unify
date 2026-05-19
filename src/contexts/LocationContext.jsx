@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const LocationContext = createContext();
 
@@ -28,7 +28,27 @@ export const LocationProvider = ({ children }) => {
         }
     };
 
-    const detectLocation = async () => {
+    const fallbackToTimezone = useCallback(() => {
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        let country = 'US';
+
+        if (timeZone.includes('Calcutta') || timeZone.includes('Asia/Kolkata')) country = 'IN';
+        else if (timeZone.includes('London')) country = 'GB';
+        else if (timeZone.includes('Europe')) country = 'DE'; // Generic Euro
+
+        const currency = deriveCurrency(country);
+
+        setLocation({
+            city: timeZone.split('/')[1] || 'Local',
+            region: 'Timezone Based',
+            country,
+            currency: currency.symbol,
+            currencyCode: currency.code
+        });
+        setLoading(false);
+    }, []);
+
+    const detectLocation = useCallback(async () => {
         setLoading(true);
         // 1. Try Browser Geolocation
         if (navigator.geolocation) {
@@ -68,31 +88,11 @@ export const LocationProvider = ({ children }) => {
         } else {
             fallbackToTimezone();
         }
-    };
-
-    const fallbackToTimezone = () => {
-        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        let country = 'US';
-
-        if (timeZone.includes('Calcutta') || timeZone.includes('Asia/Kolkata')) country = 'IN';
-        else if (timeZone.includes('London')) country = 'GB';
-        else if (timeZone.includes('Europe')) country = 'DE'; // Generic Euro
-
-        const currency = deriveCurrency(country);
-
-        setLocation({
-            city: timeZone.split('/')[1] || 'Local',
-            region: 'Timezone Based',
-            country,
-            currency: currency.symbol,
-            currencyCode: currency.code
-        });
-        setLoading(false);
-    };
+    }, [fallbackToTimezone]);
 
     useEffect(() => {
-        detectLocation();
-    }, []);
+        Promise.resolve().then(() => detectLocation());
+    }, [detectLocation]);
 
     return (
         <LocationContext.Provider value={{ location, refreshLocation: detectLocation, loading }}>

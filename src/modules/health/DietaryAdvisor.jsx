@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Activity, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useHealth } from '../../contexts/HealthContext';
-import { db } from '../../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import styles from './Health.module.css'; 
 import { getDietaryPlan } from './DietaryRuleEngine'; 
 
+// Available clinical conditions supported by the expert system
+const AVAILABLE_CONDITIONS = [
+    { id: 'diabetes', label: 'Diabetes (Type 1 & 2)', color: '#e74c3c' },
+    { id: 'hypertension', label: 'Hypertension (High BP)', color: '#3498db' },
+    { id: 'heart_disease', label: 'Heart Disease', color: '#e67e22' },
+    { id: 'kidney_disease', label: 'Chronic Kidney Disease (CKD)', color: '#9b59b6' }
+];
+
 const DietaryAdvisor = () => {
-    const { currentUser } = useAuth();
     const { healthState, updateHealth, updateProfile } = useHealth();
     const [recommendation, setRecommendation] = useState('');
     const [loading, setLoading] = useState(false);
@@ -22,13 +26,7 @@ const DietaryAdvisor = () => {
     const [height, setHeight] = useState('170');
     const [goal, setGoal] = useState('maintain');
 
-    // Available clinical conditions supported by the expert system
-    const AVAILABLE_CONDITIONS = [
-        { id: 'diabetes', label: 'Diabetes (Type 1 & 2)', color: '#e74c3c' },
-        { id: 'hypertension', label: 'Hypertension (High BP)', color: '#3498db' },
-        { id: 'heart_disease', label: 'Heart Disease', color: '#e67e22' },
-        { id: 'kidney_disease', label: 'Chronic Kidney Disease (CKD)', color: '#9b59b6' }
-    ];
+    // (AVAILABLE_CONDITIONS is defined statically above the component)
 
     const [selectedConditions, setSelectedConditions] = useState([]);
 

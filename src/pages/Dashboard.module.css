@@ -110,3 +110,26 @@
 .card:hover .footer {
     color: var(--text-primary);
 }
+
+@media (max-width: 767px) {
+    .container {
+        gap: var(--space-md);
+    }
+    .hero h1 {
+        font-size: 26px;
+    }
+    .hero p {
+        font-size: 15px;
+    }
+    .grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+    .card {
+        padding: var(--space-md);
+        gap: var(--space-sm);
+    }
+    .value {
+        font-size: 32px;
+    }
+}

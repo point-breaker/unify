@@ -89,6 +89,12 @@
     width: 100%;
 }
 
+.content {
+    padding: var(--space-md);
+    width: 100%;
+    box-sizing: border-box;
+}
+
 /* Desktop Breakpoint */
 @media (min-width: 768px) {
     .mobileHeader {

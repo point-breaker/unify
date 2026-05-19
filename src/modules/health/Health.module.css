@@ -308,3 +308,47 @@
     outline: none;
     border-color: var(--accent);
 }
+
+@media (max-width: 767px) {
+    .dashboard {
+        gap: var(--space-md);
+    }
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+    }
+    .title {
+        font-size: 24px;
+    }
+    .grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+    .card {
+        padding: var(--space-md);
+        gap: var(--space-sm);
+    }
+    .value {
+        font-size: 26px;
+    }
+    .lockScreen {
+        grid-column: span 1;
+        padding: 30px 16px;
+    }
+    .setupForm {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+    .setupInput {
+        max-width: 100%;
+    }
+    .recGrid {
+        grid-template-columns: 1fr;
+    }
+    .recCard {
+        padding: var(--space-sm);
+        gap: var(--space-sm);
+    }
+}

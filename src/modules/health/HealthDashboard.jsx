@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { Heart, Activity, Moon, Utensils, Scale, Calculator, Shield, Check } from 'lucide-react';
+import { Heart, Activity, Moon, Utensils, Scale, Calculator, Shield, Check, Bluetooth, Footprints, Radio } from 'lucide-react';
 import styles from './Health.module.css';
 import { useHealth } from '../../contexts/HealthContext';
 import { useFamily } from '../../contexts/FamilyContext';
 import { useAuth } from '../../contexts/AuthContext';
 import DietaryAdvisor from './DietaryAdvisor';
+import { pedometerEngine, PedometerEngine } from './PedometerEngine';
+import { bluetoothManager } from './BluetoothManager';
 
 // Helper to parse dynamic meal portions and calories from compiled AI recommendation markdown
 const parseDietaryPlanToMeals = (recommendationText) => {
@@ -127,6 +129,85 @@ const HealthDashboard = () => {
     const [manualSteps, setManualSteps] = useState(null);
     const [manualHeartRate, setManualHeartRate] = useState(null);
     const [manualSleep, setManualSleep] = useState('');
+
+    // ─── Live Hardware Tracking State ───
+    const [isPedometerActive, setIsPedometerActive] = useState(false);
+    const [liveSteps, setLiveSteps] = useState(0);
+    const [liveCalories, setLiveCalories] = useState(0);
+    const [isBluetoothConnected, setIsBluetoothConnected] = useState(false);
+    const [liveHeartRate, setLiveHeartRate] = useState(null);
+    const [hrHistory, setHrHistory] = useState([]); // rolling HR chart data
+    const pedometerSaveTimer = useRef(null);
+
+    // ─── Pedometer Controls ───
+    const startPedometer = useCallback(async () => {
+        const weight = healthState.profile?.weight || 70;
+        const success = await pedometerEngine.start((data) => {
+            setLiveSteps(data.steps);
+            setLiveCalories(data.calories);
+        }, weight);
+
+        if (success) {
+            setIsPedometerActive(true);
+            // Auto-save to Firestore every 30 seconds
+            pedometerSaveTimer.current = setInterval(() => {
+                const snap = pedometerEngine.getSnapshot();
+                if (snap.steps > 0) {
+                    syncTelemetry({ steps: (healthState.steps || 0) + snap.steps });
+                }
+            }, 30000);
+        } else {
+            alert('Step tracking requires a mobile device with motion sensors (Chrome on Android).\n\nOn desktop, use Google Fit sync or manual entry instead.');
+        }
+    }, [healthState.profile?.weight, healthState.steps]);
+
+    const stopPedometer = useCallback(() => {
+        // Save final count before stopping
+        const snap = pedometerEngine.getSnapshot();
+        if (snap.steps > 0) {
+            syncTelemetry({ steps: (healthState.steps || 0) + snap.steps });
+        }
+        pedometerEngine.stop();
+        pedometerEngine.reset();
+        setIsPedometerActive(false);
+        setLiveSteps(0);
+        setLiveCalories(0);
+        if (pedometerSaveTimer.current) clearInterval(pedometerSaveTimer.current);
+    }, [healthState.steps]);
+
+    // ─── Bluetooth Heart Rate Controls ───
+    const connectHeartRateMonitor = useCallback(async () => {
+        try {
+            await bluetoothManager.connect((hr) => {
+                setLiveHeartRate(hr);
+                setIsBluetoothConnected(true);
+                // Build rolling HR history (last 20 readings)
+                setHrHistory(prev => {
+                    const next = [...prev, { time: new Date().toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit' }), bpm: hr }];
+                    return next.slice(-20);
+                });
+                // Persist to Firestore
+                syncTelemetry({ heartRate: hr });
+            });
+            setIsBluetoothConnected(true);
+        } catch (err) {
+            alert('Could not connect to Bluetooth heart rate monitor.\n\nMake sure:\n1. Bluetooth is enabled on your device\n2. Your HR monitor is nearby and in pairing mode\n3. You are using Chrome browser');
+        }
+    }, []);
+
+    const disconnectHeartRateMonitor = useCallback(() => {
+        bluetoothManager.disconnect();
+        setIsBluetoothConnected(false);
+        setLiveHeartRate(null);
+    }, []);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (pedometerEngine.isActive) pedometerEngine.stop();
+            if (pedometerSaveTimer.current) clearInterval(pedometerSaveTimer.current);
+        };
+    }, []);
 
     // Emergency Contact State
     const [emergencyName, setEmergencyName] = useState('');
@@ -518,12 +599,43 @@ const HealthDashboard = () => {
                             <h3>{viewMode === 'household' ? 'Total Family Steps' : 'Activity'}</h3>
                         </div>
                         <div className={styles.metric}>
-                            <span className={styles.value}>{displaySteps !== null ? displaySteps.toLocaleString() : 'No Data'}</span>
+                            <span className={styles.value}>
+                                {isPedometerActive 
+                                    ? ((displaySteps || 0) + liveSteps).toLocaleString() 
+                                    : (displaySteps !== null ? displaySteps.toLocaleString() : 'No Data')}
+                            </span>
                             <span className={styles.unit}>steps</span>
                         </div>
                         <div className={styles.progressBar} style={{ marginTop: 10, background: 'rgba(255,255,255,0.1)' }}>
-                            <div className={styles.progressFill} style={{ width: `${Math.min(((displaySteps || 0) / (viewMode === 'household' ? 30000 : healthState.targetSteps)) * 100, 100)}%`, background: 'var(--success)' }}></div>
+                            <div className={styles.progressFill} style={{ width: `${Math.min((((displaySteps || 0) + (isPedometerActive ? liveSteps : 0)) / (viewMode === 'household' ? 30000 : healthState.targetSteps)) * 100, 100)}%`, background: 'var(--success)' }}></div>
                         </div>
+
+                        {/* Live Pedometer Controls */}
+                        {viewMode === 'personal' && selectedMemberId === 'admin' && (
+                            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {isPedometerActive ? (
+                                    <>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#34d399' }}>
+                                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d399', animation: 'pulse-sos 1.5s infinite', display: 'inline-block' }}></span>
+                                            Live Tracking • +{liveSteps} steps • {liveCalories} kcal burned
+                                        </div>
+                                        <button
+                                            onClick={stopPedometer}
+                                            style={{ padding: '6px 12px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8, color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                                        >
+                                            ■ Stop Tracking
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={startPedometer}
+                                        style={{ padding: '6px 12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 8, color: '#34d399', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
+                                    >
+                                        <Footprints size={14} /> Start Step Tracking
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* LEADERBOARD (Replaces HR/Sleep in Household Mode) */}
@@ -556,19 +668,54 @@ const HealthDashboard = () => {
                             <div className={`${styles.card} ${styles.hrCard}`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                                 <div>
                                     <div className={styles.cardHeader}>
-                                        <div className={styles.iconBox} style={{ background: '#EF4444', animation: (isAppleHealthConnected || isGoogleFitConnected || isSamsungHealthConnected) ? 'pulse-sos 2s infinite' : 'none' }}>
+                                        <div className={styles.iconBox} style={{ background: '#EF4444', animation: (isBluetoothConnected || isAppleHealthConnected || isGoogleFitConnected || isSamsungHealthConnected) ? 'pulse-sos 2s infinite' : 'none' }}>
                                             <Heart size={20} color="white" />
                                         </div>
                                         <h3>Heart Rate</h3>
                                     </div>
                                     <div className={styles.metric} style={{ marginBottom: '10px' }}>
-                                        <span className={styles.value}>{displayHeartRate !== null ? Math.round(displayHeartRate) : 'No Data'}</span>
+                                        <span className={styles.value}>
+                                            {liveHeartRate !== null ? liveHeartRate : (displayHeartRate !== null ? Math.round(displayHeartRate) : 'No Data')}
+                                        </span>
                                         <span className={styles.unit}>bpm</span>
                                     </div>
-                                    <span style={{ fontSize: '11px', color: (isAppleHealthConnected || isGoogleFitConnected || isSamsungHealthConnected) ? '#34d399' : 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '14px' }}>
-                                        {selectedMemberId !== 'admin' ? "○ Synced from member's API" : ((isAppleHealthConnected || isGoogleFitConnected || isSamsungHealthConnected) ? `● Connected to API` : '○ Unsynced API')}
+                                    <span style={{ fontSize: '11px', color: isBluetoothConnected ? '#34d399' : (isAppleHealthConnected || isGoogleFitConnected || isSamsungHealthConnected) ? '#34d399' : 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '10px' }}>
+                                        {isBluetoothConnected ? '● Live Bluetooth HR Monitor' : (selectedMemberId !== 'admin' ? "○ Synced from member's API" : ((isAppleHealthConnected || isGoogleFitConnected || isSamsungHealthConnected) ? '● Connected to API' : '○ Unsynced'))}
                                     </span>
+
+                                    {/* Mini HR Chart (when BLE is connected) */}
+                                    {isBluetoothConnected && hrHistory.length > 1 && (
+                                        <div style={{ height: 60, marginBottom: 8 }}>
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={hrHistory}>
+                                                    <Line type="monotone" dataKey="bpm" stroke="#ef4444" strokeWidth={2} dot={false} />
+                                                    <YAxis domain={['dataMin - 5', 'dataMax + 5']} hide />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* Bluetooth HR Controls */}
+                                {viewMode === 'personal' && selectedMemberId === 'admin' && (
+                                    <div style={{ marginTop: 4 }}>
+                                        {isBluetoothConnected ? (
+                                            <button
+                                                onClick={disconnectHeartRateMonitor}
+                                                style={{ width: '100%', padding: '6px 12px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 8, color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                                            >
+                                                Disconnect Monitor
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={connectHeartRateMonitor}
+                                                style={{ width: '100%', padding: '6px 12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 8, color: '#f87171', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
+                                            >
+                                                <Bluetooth size={13} /> Connect HR Monitor
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className={`${styles.card} ${styles.sleepCard}`}>

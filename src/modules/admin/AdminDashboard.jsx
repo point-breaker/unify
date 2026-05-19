@@ -274,7 +274,7 @@ const AdminDashboard = () => {
                             </h4>
                             <form onSubmit={handleAddRule}>
                                 <div style={{ marginBottom: '12px' }}>
-                                    <label style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '6px' }}>Trigger Condition (e.g. Sugar > 50g)</label>
+                                    <label style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: '6px' }}>Trigger Condition (e.g. Sugar &gt; 50g)</label>
                                     <input 
                                         type="text" 
                                         value={newRuleTrigger}

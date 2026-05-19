@@ -7,9 +7,9 @@ const Layout = ({ children }) => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Overview', path: '/' },
         { icon: Heart, label: 'Health', path: '/health' },
-        { icon: Wallet, label: 'Finance', path: '/finance' },
+        // { icon: Wallet, label: 'Finance', path: '/finance' },
         { icon: Users, label: 'Family Hub', path: '/family' },
-        { icon: Cloud, label: 'Environment', path: '/community' },
+        // { icon: Cloud, label: 'Environment', path: '/community' },
         { icon: ShieldAlert, label: 'Admin Control', path: '/admin' },
         { icon: Settings, label: 'Settings', path: '/settings' },
     ];

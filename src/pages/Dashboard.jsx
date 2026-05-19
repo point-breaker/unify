@@ -62,7 +62,7 @@ const Dashboard = () => {
                     </div>
                 </Link>
  
-                {/* Finance Summary */}
+                {/* Finance Summary - Hidden for now
                 <Link to="/finance" className={styles.card} style={{ '--accent': 'var(--grad-finance)' }}>
                     <div className={styles.cardHeader}>
                         <div className={styles.iconBox}>
@@ -82,8 +82,9 @@ const Dashboard = () => {
                         <ArrowRight size={16} />
                     </div>
                 </Link>
+                */}
 
-                {/* Community Summary */}
+                {/* Community Summary - Hidden for now
                 <Link to="/community" className={styles.card} style={{ '--accent': 'var(--grad-community)' }}>
                     <div className={styles.cardHeader}>
                         <div className={styles.iconBox}>
@@ -105,6 +106,7 @@ const Dashboard = () => {
                         <ArrowRight size={16} />
                     </div>
                 </Link>
+                */}
             </div>
         </div>
     );

@@ -91,7 +91,9 @@ export const FamilyProvider = ({ children }) => {
                         familyCode: userFamilyCode,
                         members: famData.members || [],
                         challenges: famData.challenges || [],
-                        notifications: famData.notifications || []
+                        notifications: famData.notifications || [],
+                        contacts: famData.contacts || [],
+                        rules: famData.rules || []
                     });
                 }
             }, (error) => {
@@ -112,10 +114,12 @@ export const FamilyProvider = ({ children }) => {
                         role: session.role,
                         familyCode: session.familyCode,
                         members: family.members || [],
-                        challenges: family.challenges || []
+                        challenges: family.challenges || [],
+                        contacts: family.contacts || [],
+                        rules: family.rules || []
                     });
                 } else {
-                    setFamilyState({ subscription: { status: 'free', tier: 'free' }, role: null, familyCode: '', members: [], challenges: [] });
+                    setFamilyState({ subscription: { status: 'free', tier: 'free' }, role: null, familyCode: '', members: [], challenges: [], contacts: [], rules: [] });
                 }
             };
             rehydrate();
@@ -326,9 +330,50 @@ export const FamilyProvider = ({ children }) => {
     };
 
     const updateFamilyMemberStats = async (type, data) => {
-        if (!currentUser || !familyState.familyCode) return;
-        // Use internal helper to ensure consistency
-        await syncUserStatsToFamily(familyState.familyCode, currentUser.uid, type, data);
+        if (currentUser) {
+            if (!familyState.familyCode) return;
+            // 1. Optimistic UI update - instantly update state in memory for real-time reactivity
+            setFamilyState(prev => {
+                const updatedMembers = (prev.members || []).map(m => {
+                    if (m.id === currentUser.uid) {
+                        return { ...m, [type]: { ...(m[type] || {}), ...data } };
+                    }
+                    return m;
+                });
+                return { ...prev, members: updatedMembers };
+            });
+
+            // 2. Background persistence to Firestore
+            await syncUserStatsToFamily(familyState.familyCode, currentUser.uid, type, data);
+        } else {
+            // Local / Mock Fallboard updates - keep simulation completely synchronized
+            const session = getSession();
+            if (!session.familyCode || !session.myId) return;
+            
+            const db = getDB();
+            const family = db[session.familyCode];
+            if (!family) return;
+
+            const memberIndex = family.members.findIndex(m => m.id === session.myId);
+            if (memberIndex === -1) return;
+
+            const member = family.members[memberIndex];
+            member[type] = { ...(member[type] || {}), ...data };
+            family.members[memberIndex] = member;
+            
+            db[session.familyCode] = family;
+            saveDB(db);
+
+            setFamilyState(prev => {
+                const updatedMembers = (prev.members || []).map(m => {
+                    if (m.id === session.myId) {
+                        return { ...m, [type]: { ...(m[type] || {}), ...data } };
+                    }
+                    return m;
+                });
+                return { ...prev, members: updatedMembers };
+            });
+        }
     };
 
     // Internal helper to sync specific data to family doc
@@ -519,12 +564,46 @@ export const FamilyProvider = ({ children }) => {
         }
     };
 
+    // Admin actions
+    const removeMember = async (memberId) => {
+        if (!currentUser || !familyState.familyCode) return;
+        try {
+            const familyRef = doc(db, 'families', familyState.familyCode);
+            const updatedMembers = familyState.members.filter(m => m.id !== memberId);
+            await updateDoc(familyRef, { members: updatedMembers });
+            await updateDoc(doc(db, 'users', memberId), { familyCode: '' });
+        } catch (e) {
+            console.error("Failed to remove member:", e);
+        }
+    };
+
+    const updateMemberRole = async (memberId, newRole) => {
+        if (!currentUser || !familyState.familyCode) return;
+        try {
+            const familyRef = doc(db, 'families', familyState.familyCode);
+            const updatedMembers = familyState.members.map(m => m.id === memberId ? { ...m, role: newRole } : m);
+            await updateDoc(familyRef, { members: updatedMembers });
+        } catch (e) {
+            console.error("Failed to update role:", e);
+        }
+    };
+
+    const updateFamilyRules = async (newRules) => {
+        if (!currentUser || !familyState.familyCode) return;
+        try {
+            const familyRef = doc(db, 'families', familyState.familyCode);
+            await updateDoc(familyRef, { rules: newRules });
+        } catch (e) {
+            console.error("Failed to update rules:", e);
+        }
+    };
+
     return (
         <FamilyContext.Provider value={{ 
             familyState, upgradeToFamily, joinFamily, leaveFamily, 
             toggleSharing, getHouseholdStats, getLeaderboard, 
             updateFamilyMemberStats, createChallenge, joinChallenge,
-            markNotificationsRead
+            markNotificationsRead, removeMember, updateMemberRole, updateFamilyRules
         }}>
             {children}
         </FamilyContext.Provider>

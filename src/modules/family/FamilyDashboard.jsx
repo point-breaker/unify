@@ -152,11 +152,21 @@ const FamilyDashboard = () => {
     }, [currentUser]);
 
     // Emergency Contacts List
-    const [emergencyContacts, setEmergencyContacts] = useState([
+    const DEFAULT_CONTACTS = [
         { name: 'Dr. Sarah Jenkins (Family Physician)', phone: '+91 98765 43210', relationship: 'Doctor' },
         { name: 'City Hospital Emergency', phone: '102', relationship: 'Hospital' },
         { name: 'Metropolitan Ambulance', phone: '108', relationship: 'Ambulance' }
-    ]);
+    ];
+    const [emergencyContacts, setEmergencyContacts] = useState(DEFAULT_CONTACTS);
+
+    useEffect(() => {
+        if (familyState?.contacts && familyState.contacts.length > 0) {
+            setEmergencyContacts(familyState.contacts);
+        } else {
+            setEmergencyContacts(DEFAULT_CONTACTS);
+        }
+    }, [familyState?.contacts]);
+
     const [newContactName, setNewContactName] = useState('');
     const [newContactPhone, setNewContactPhone] = useState('');
     const [newContactRel, setNewContactRel] = useState('');

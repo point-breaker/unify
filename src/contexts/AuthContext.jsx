@@ -7,7 +7,8 @@ import {
     signInAnonymously,
     updateProfile,
     RecaptchaVerifier,
-    signOut
+    signOut,
+    signInWithCustomToken
 } from 'firebase/auth';
 
 const AuthContext = createContext();
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Real Firebase Auth listener — handles phone, anonymous, and all sessions
+        // Real Firebase Auth listener — handles phone, anonymous, custom tokens, and all sessions
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setCurrentUser(user);
             setLoading(false);
@@ -44,6 +45,41 @@ export const AuthProvider = ({ children }) => {
 
     const loginWithPhone = async (phoneNumber, appVerifier) => {
         return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+    };
+
+    const sendOtpEmail = async (email) => {
+        try {
+            const res = await fetch('/api/auth/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to send verification code');
+            return { success: true, ...data };
+        } catch (e) {
+            console.error('[Auth] sendOtpEmail error:', e);
+            return { success: false, message: e.message };
+        }
+    };
+
+    const verifyOtpEmail = async (email, otp) => {
+        try {
+            const res = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Incorrect or expired verification code');
+
+            // Authenticate the client using the Custom Token issued by our serverless function
+            await signInWithCustomToken(auth, data.customToken);
+            return { success: true };
+        } catch (e) {
+            console.error('[Auth] verifyOtpEmail error:', e);
+            return { success: false, message: e.message };
+        }
     };
 
     /**
@@ -76,6 +112,8 @@ export const AuthProvider = ({ children }) => {
         setupRecaptcha,
         loginWithPhone,
         signInSimulated,
+        sendOtpEmail,
+        verifyOtpEmail,
         logout
     };
 

@@ -93,7 +93,57 @@ const FinanceDashboard = () => {
     // Override 'envelopes' used in render if switching user
     const currentEnvelopes = displayFinance.envelopes || envelopes;
 
-    // ... (allocator logic) ...
+    // Smart Income Allocator State and Actions
+    const [allocationPreview, setAllocationPreview] = useState([]);
+
+    const handleSimulateAllocation = (val) => {
+        setIncomeInput(val);
+        const amount = parseFloat(val);
+        if (isNaN(amount) || amount <= 0) {
+            setAllocationPreview([]);
+            return;
+        }
+        setAllocationPreview([
+            { name: 'Needs (50%)', value: amount * 0.5, color: '#3B82F6' },
+            { name: 'Wants (30%)', value: amount * 0.3, color: '#F59E0B' },
+            { name: 'Savings (20%)', value: amount * 0.2, color: '#10B981' }
+        ]);
+    };
+
+    const handleApplyAllocation = async () => {
+        if (allocationPreview.length === 0) return;
+        const needsLimit = allocationPreview[0].value;
+        const wantsLimit = allocationPreview[1].value;
+        const savingsLimit = allocationPreview[2].value;
+
+        const updatedEnvelopes = [
+            { name: 'Needs', limit: needsLimit, current: needsLimit, color: '#3B82F6' },
+            { name: 'Wants', limit: wantsLimit, current: wantsLimit, color: '#F59E0B' },
+            { name: 'Savings', limit: savingsLimit, current: savingsLimit, color: '#10B981' }
+        ];
+
+        const budgetLimit = needsLimit + wantsLimit + savingsLimit;
+
+        await updateFinance({
+            budgetLimit,
+            envelopes: updatedEnvelopes,
+            monthlySpending: 0,
+            isBudgetOnTrack: true
+        });
+
+        if (updateFamilyMemberStats) {
+            await updateFamilyMemberStats('finance', {
+                netWorth: displayFinance.netWorth,
+                budget: budgetLimit,
+                spending: 0
+            });
+        }
+
+        alert("Income Allocation Applied Successfully!\nYour budget envelopes have been replenished.");
+        setIncomeInput('');
+        setAllocationPreview([]);
+        setActiveTab('overview');
+    };
 
     return (
         <div className={styles.dashboard}>
@@ -233,7 +283,7 @@ const FinanceDashboard = () => {
                                                         <span style={{ fontWeight: 700, color: idx === 0 ? '#10B981' : '#666' }}>#{idx + 1}</span>
                                                         <span>{m.name}</span>
                                                     </div>
-                                                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>{currency}{m.score.toLocaleString()}</span>
+                                                    <span style={{ fontWeight: 600, color: 'var(--success)' }}>{currency}{(m.score || 0).toLocaleString()}</span>
                                                 </div>
                                             ))}
                                         </div>

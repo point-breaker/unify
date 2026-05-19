@@ -50,18 +50,18 @@ const Dashboard = () => {
                         <h2>Health</h2>
                     </div>
                     <div className={styles.metric}>
-                        <span className={styles.value}>{healthState.score}</span>
+                        <span className={styles.value}>{healthState?.score || '--'}</span>
                         <span className={styles.label}>Team Score</span>
                     </div>
                     <div className={styles.subtext}>
-                        {healthState.steps.toLocaleString()} steps today
+                        {(healthState?.steps || 0).toLocaleString()} steps today
                     </div>
                     <div className={styles.footer}>
                         <span>View Dashboard</span>
                         <ArrowRight size={16} />
                     </div>
                 </Link>
-
+ 
                 {/* Finance Summary */}
                 <Link to="/finance" className={styles.card} style={{ '--accent': 'var(--grad-finance)' }}>
                     <div className={styles.cardHeader}>
@@ -71,11 +71,11 @@ const Dashboard = () => {
                         <h2>Finance</h2>
                     </div>
                     <div className={styles.metric}>
-                        <span className={styles.value}>{location.currency}{financeState.netWorth.toLocaleString()}</span>
+                        <span className={styles.value}>{location?.currency || '$'}{(financeState?.netWorth || 0).toLocaleString()}</span>
                         <span className={styles.label}>Net Worth</span>
                     </div>
                     <div className={styles.subtext}>
-                        {financeState.isBudgetOnTrack ? '✅ On Budget Track' : '⚠️ Over Budget'}
+                        {financeState?.isBudgetOnTrack ? '✅ On Budget Track' : '⚠️ Over Budget'}
                     </div>
                     <div className={styles.footer}>
                         <span>View Wallet</span>

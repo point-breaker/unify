@@ -2,27 +2,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Phone, ArrowRight, ShieldCheck, Activity, User, MessageSquare } from 'lucide-react';
+import { Mail, ArrowRight, ShieldCheck, Activity, User, MessageSquare } from 'lucide-react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import styles from './Login.module.css';
 
 const Login = () => {
     const [mode, setMode] = useState('login'); // 'login' | 'register'
-    const [step, setStep] = useState('phone'); // 'phone' | 'otp'
+    const [step, setStep] = useState('email'); // 'email' | 'otp'
 
     // Form Inputs
-    const [phoneNumber, setPhoneNumber] = useState('');
+    const [email, setEmail] = useState('');
     const [name, setName] = useState('');
     const [otp, setOtp] = useState('');
 
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [confirmationResult, setConfirmationResult] = useState(null);
+    const [isMockSession, setIsMockSession] = useState(false);
     const [simulatedCode, setSimulatedCode] = useState('');
-    const [smsToast, setSmsToast] = useState(null);
+    const [emailToast, setEmailToast] = useState(null);
 
-    const { loginWithPhone, setupRecaptcha, signInSimulated, currentUser } = useAuth();
+    const { sendOtpEmail, verifyOtpEmail, signInSimulated, currentUser } = useAuth();
     const navigate = useNavigate();
 
     // Redirect if already logged in
@@ -37,49 +37,34 @@ const Login = () => {
         setError('');
         setLoading(true);
 
-        const formattedNumber = phoneNumber.startsWith('+')
-            ? phoneNumber
-            : `+91${phoneNumber.replace(/^0+/, '')}`; // Default to India (+91)
+        const normalizedEmail = email.toLowerCase().trim();
 
-        let appVerifier = null;
         try {
-            // 1. Strictly attempt real Firebase Phone SMS dispatch first
-            appVerifier = setupRecaptcha('recaptcha-container');
-            const confirmation = await loginWithPhone(formattedNumber, appVerifier);
-            setConfirmationResult(confirmation);
+            const result = await sendOtpEmail(normalizedEmail);
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to dispatch verification code.');
+            }
+
+            if (result.mock) {
+                // SMTP Not configured yet – display custom sandboxed mock banner
+                setIsMockSession(true);
+                setSimulatedCode(result.otp);
+                
+                // Only show mock notification banner if no real email was dispatched!
+                if (!result.emailSent) {
+                    setEmailToast({ email: normalizedEmail, code: result.otp });
+                    setTimeout(() => {
+                        setEmailToast(null);
+                    }, 10000);
+                }
+            } else {
+                setIsMockSession(false);
+            }
+
             setStep('otp');
         } catch (err) {
-            console.warn("Firebase Phone Auth failed/restricted. Checking billing constraints...", err);
-            
-            // 2. Automate presentation-safe sandbox fallback ONLY on Firebase billing restriction
-            if (err.code === 'auth/billing-not-enabled' || err.message?.includes('billing-not-enabled')) {
-                const code = Math.floor(100000 + Math.random() * 900000).toString();
-                setSimulatedCode(code);
-                
-                // Add minor cellular gateway latency for realistic feedback
-                await new Promise(resolve => setTimeout(resolve, 800));
-                
-                setConfirmationResult({ isSimulated: true, number: formattedNumber });
-                setStep('otp');
-                
-                // Dispatch sliding push notification toast
-                setSmsToast({ phone: formattedNumber, code: code });
-                setTimeout(() => {
-                    setSmsToast(null);
-                }, 8000);
-            } else {
-                // Return real Firebase errors (e.g., unauthorized domain) for whitelisting diagnosis
-                setError('SMS Error: ' + (err.message || 'Verification failed. Make sure your domain is whitelisted in Firebase Console.'));
-            }
-
-            // Clean up Google reCAPTCHA state on error so it can be re-rendered on next submit
-            if (appVerifier) {
-                try {
-                    appVerifier.clear();
-                } catch (e) {
-                    console.warn("Failed to clear verifier on catch:", e);
-                }
-            }
+            console.error("Gmail OTP dispatch error:", err);
+            setError(err.message || 'Unable to connect to authentication server. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -90,30 +75,27 @@ const Login = () => {
         setError('');
         setLoading(true);
 
-        const formattedNumber = phoneNumber.startsWith('+')
-            ? phoneNumber
-            : `+91${phoneNumber.replace(/^0+/, '')}`;
+        const normalizedEmail = email.toLowerCase().trim();
 
         try {
             let uid = "";
-            let verifiedPhoneNumber = "";
-
-            if (confirmationResult && confirmationResult.isSimulated) {
-                // Verify against Sandbox generator code
-                if (otp !== simulatedCode) {
-                    throw new Error("Invalid OTP");
+            if (isMockSession) {
+                if (otp.trim() !== simulatedCode.trim()) {
+                    throw new Error("Invalid verification code.");
                 }
-                
-                // Process sandbox authentication
-                signInSimulated(formattedNumber);
-                uid = `sim_${formattedNumber.replace(/[^0-9]/g, '')}`;
-                verifiedPhoneNumber = formattedNumber;
+                const simResult = await signInSimulated(normalizedEmail);
+                if (!simResult.success) {
+                    throw new Error(simResult.message || 'Simulated login failed.');
+                }
+                const { auth } = await import('../firebase');
+                uid = auth.currentUser.uid;
             } else {
-                // Real Firebase phone authentication verification
-                const result = await confirmationResult.confirm(otp);
-                const user = result.user;
-                uid = user.uid;
-                verifiedPhoneNumber = user.phoneNumber;
+                const result = await verifyOtpEmail(normalizedEmail, otp);
+                if (!result.success) {
+                    throw new Error(result.message || 'Invalid code.');
+                }
+                const { auth } = await import('../firebase');
+                uid = auth.currentUser.uid;
             }
 
             // Sync user data to Firestore
@@ -123,22 +105,22 @@ const Login = () => {
             if (mode === 'register') {
                 await setDoc(userDocRef, {
                     name: name,
-                    phoneNumber: verifiedPhoneNumber,
+                    email: normalizedEmail,
                     createdAt: new Date().toISOString()
                 }, { merge: true });
             } else {
                 if (!userSnap.exists()) {
                     await setDoc(userDocRef, {
-                        phoneNumber: verifiedPhoneNumber,
-                        name: name || `User (${verifiedPhoneNumber.slice(-4)})`
+                        email: normalizedEmail,
+                        name: name || normalizedEmail.split('@')[0]
                     }, { merge: true });
                 }
             }
 
             navigate('/'); // Success!
         } catch (err) {
-            console.error("OTP Verification Error:", err);
-            setError('Invalid OTP. Please try again.');
+            console.error("Gmail OTP Verification Error:", err);
+            setError(err.message || 'Invalid verification code. Please check and try again.');
         } finally {
             setLoading(false);
         }
@@ -147,7 +129,7 @@ const Login = () => {
     const toggleMode = () => {
         setMode(mode === 'login' ? 'register' : 'login');
         setError('');
-        setStep('phone');
+        setStep('email');
     };
 
     return (
@@ -160,8 +142,8 @@ const Login = () => {
                 }
             ` }} />
 
-            {/* Premium iOS-style Push Notification Toast */}
-            {smsToast && (
+            {/* Premium iOS-style Push Notification Toast for Local Fallback OTP */}
+            {emailToast && (
                 <div style={{
                     position: 'fixed',
                     top: '20px',
@@ -194,12 +176,12 @@ const Login = () => {
                     </div>
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.4)', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase' }}>MESSAGES</span>
+                            <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.4)', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase' }}>GMAIL GATEWAY</span>
                             <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.3)' }}>now</span>
                         </div>
-                        <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'white', margin: '0 0 2px 0' }}>Unify SMS Sandbox Gateway</h4>
+                        <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'white', margin: '0 0 2px 0' }}>Unify Local Sandbox OTP</h4>
                         <p style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)', margin: 0, lineHeight: 1.4 }}>
-                            Your verification code is <strong style={{ color: '#1abc9c', fontSize: '13px', background: 'rgba(26, 188, 156, 0.15)', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>{smsToast.code}</strong>. It will expire in 5 minutes.
+                            Your verification code is <strong style={{ color: '#1abc9c', fontSize: '13px', background: 'rgba(26, 188, 156, 0.15)', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>{emailToast.code}</strong>. Use this to bypass real SMTP setup.
                         </p>
                     </div>
                 </div>
@@ -214,7 +196,7 @@ const Login = () => {
                         {mode === 'login' ? 'Welcome Back' : 'Create Account'}
                     </h1>
                     <p className={styles.subtitle}>
-                        {mode === 'login' ? 'Login to access your family dashboard.' : 'Join Unify to track health & wealth together.'}
+                        {mode === 'login' ? 'Login with Gmail to access your hub.' : 'Join Unify to track health & wealth together.'}
                     </p>
                 </div>
 
@@ -224,7 +206,7 @@ const Login = () => {
                     </div>
                 )}
 
-                {step === 'phone' ? (
+                {step === 'email' ? (
                     <form onSubmit={handleSendOtp}>
 
                         {/* Name Input - Only for Register */}
@@ -246,31 +228,29 @@ const Login = () => {
                         )}
 
                         <div className={styles.inputGroup}>
-                            <label className={styles.label}>Phone Number</label>
+                            <label className={styles.label}>Gmail / Email Address</label>
                             <div className={styles.inputWrapper}>
-                                <Phone size={18} className={styles.icon} />
+                                <Mail size={18} className={styles.icon} />
                                 <input
-                                    type="tel"
-                                    placeholder="+91 99999 99999"
-                                    value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    type="email"
+                                    placeholder="yourname@gmail.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className={styles.input}
                                     required
                                 />
                             </div>
                             <p className={styles.helperText}>
-                                Msg & data rates may apply.
+                                A secure 6-digit verification code will be sent to your inbox.
                             </p>
                         </div>
-
-                        <div id="recaptcha-container"></div>
 
                         <button
                             type="submit"
                             disabled={loading}
                             className={styles.primaryBtn}
                         >
-                            {loading ? 'Sending...' : 'Continue'} <ArrowRight size={18} />
+                            {loading ? 'Sending Code...' : 'Send Verification Code'} <ArrowRight size={18} />
                         </button>
 
                         <div className={styles.footer}>
@@ -289,7 +269,7 @@ const Login = () => {
                 ) : (
                     <form onSubmit={handleVerifyOtp}>
                         <div className={styles.inputGroup}>
-                            <label className={styles.label}>Enter OTP</label>
+                            <label className={styles.label}>Enter Code</label>
                             <div className={styles.inputWrapper}>
                                 <ShieldCheck size={18} className={styles.icon} />
                                 <input
@@ -314,10 +294,10 @@ const Login = () => {
 
                         <button
                             type="button"
-                            onClick={() => setStep('phone')}
+                            onClick={() => setStep('email')}
                             className={styles.secondaryBtn}
                         >
-                            Change Number
+                            Change Email
                         </button>
                     </form>
                 )}

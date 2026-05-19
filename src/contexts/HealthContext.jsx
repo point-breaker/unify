@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 
 const HealthContext = createContext();
 
@@ -12,12 +12,12 @@ export const HealthProvider = ({ children }) => {
 
     // Default State (Fallback if offline or loading)
     const [healthState, setHealthState] = useState({
-        steps: 0,
+        steps: null,
         targetSteps: 10000,
-        heartRate: 0,
-        sleep: '--',
-        sleepQuality: '--',
-        score: 0,
+        heartRate: null,
+        sleep: null,
+        sleepQuality: null,
+        score: null,
         profile: {
             name: 'User',
             height: '',
@@ -51,15 +51,26 @@ export const HealthProvider = ({ children }) => {
         return () => unsubscribe();
     }, [currentUser]);
 
-    // 2. Function to Update Health (Also writes to Firestore)
+    // 2. Function to Update Health (Also writes to Firestore using recursive dot-notation update)
     const updateHealth = async (updates) => {
         // Optimistic UI update using functional state to prevent stale closures
         setHealthState(prev => {
             if (currentUser) {
                 const userDocRef = doc(db, 'users', currentUser.uid);
-                // Selective merge: only upload specified fields, never the entire stale state
-                setDoc(userDocRef, { health: updates }, { merge: true })
-                    .catch(e => console.error("Error syncing health:", e));
+                
+                // Formulate dot-notation updates so we update targeted nested fields without wiping out others
+                const firestoreUpdates = {};
+                Object.keys(updates).forEach(key => {
+                    firestoreUpdates[`health.${key}`] = updates[key];
+                });
+
+                updateDoc(userDocRef, firestoreUpdates)
+                    .catch(e => {
+                        console.warn("updateDoc failed, document might not exist yet. Falling back to setDoc.", e);
+                        // Fallback to initialize document
+                        setDoc(userDocRef, { health: updates }, { merge: true })
+                            .catch(err => console.error("setDoc fallback failed:", err));
+                    });
             }
             return { ...prev, ...updates };
         });
@@ -70,9 +81,14 @@ export const HealthProvider = ({ children }) => {
             const newProfile = { ...prev.profile, ...profileUpdates };
             if (currentUser) {
                 const userDocRef = doc(db, 'users', currentUser.uid);
-                // Sync the nested profile map directly into Firestore
-                setDoc(userDocRef, { health: { profile: newProfile } }, { merge: true })
-                    .catch(e => console.error("Error syncing profile:", e));
+                
+                // Use nested dot-notation to avoid wiping out other health fields!
+                updateDoc(userDocRef, { 'health.profile': newProfile })
+                    .catch(e => {
+                        console.warn("updateDoc failed, document might not exist yet. Falling back to setDoc.", e);
+                        setDoc(userDocRef, { health: { profile: newProfile } }, { merge: true })
+                            .catch(err => console.error("setDoc profile fallback failed:", err));
+                    });
             }
             return { ...prev, profile: newProfile };
         });

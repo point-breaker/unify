@@ -8,6 +8,7 @@ import Settings from './pages/Settings';
 import Family from './pages/Family';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
+import InstallPrompt from './components/InstallPrompt';
 
 import { LocationProvider } from './contexts/LocationContext';
 import { HealthProvider } from './contexts/HealthContext';
@@ -53,6 +54,7 @@ function App() {
                             <Route path="/settings" element={<Settings />} />
                           </Routes>
                         </Layout>
+                        <InstallPrompt />
                       </RequireAuth>
                     } />
                   </Routes>

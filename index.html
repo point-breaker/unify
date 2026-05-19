@@ -3,11 +3,58 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- PWA Native App Meta Tags -->
   <meta name="theme-color" content="#0F1218">
+  <meta name="background-color" content="#0F1218">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="UNIFY">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="UNIFY">
+  <meta name="msapplication-TileColor" content="#0F1218">
+  
+  <!-- SEO -->
+  <meta name="description" content="UNIFY — Your family companion for health tracking, finance management, and community engagement. Powered by AI.">
+  
+  <!-- Icons -->
   <link rel="icon" type="image/png" href="/logo.png" />
-  <link rel="apple-touch-icon" href="/logo.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  
+  <!-- Preconnect to Google Fonts for faster load -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
   <title>UNIFY</title>
+
+  <style>
+    /* Native App Feel — prevent all web-like behaviors */
+    html, body {
+      overscroll-behavior: none; /* No rubber-band bounce */
+      -webkit-tap-highlight-color: transparent; /* No blue tap flash */
+      touch-action: manipulation; /* Disable double-tap zoom */
+    }
+    body {
+      -webkit-user-select: none; /* Prevent text selection (native feel) */
+      user-select: none;
+      position: fixed; /* Prevent iOS address bar bounce */
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    #root {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling */
+    }
+    /* Allow text selection inside input fields */
+    input, textarea, [contenteditable] {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+  </style>
 </head>
 
 <body>

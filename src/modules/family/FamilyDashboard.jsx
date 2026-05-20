@@ -19,7 +19,7 @@ const DEFAULT_CONTACTS = [
 
 const FamilyDashboard = () => {
     const { currentUser } = useAuth();
-    const { healthState, updateHealth } = useHealth();
+    const { healthState, updateHealth, liveSteps, isPedometerActive } = useHealth();
     const { 
         familyState, upgradeToFamily, joinFamily, // leaveFamily, 
         toggleSharing, getHouseholdStats, getLeaderboard, // updateFamilyMemberStats,
@@ -1505,7 +1505,7 @@ const FamilyDashboard = () => {
                                                         {m.permissions?.health !== false ? (
                                                             <div style={{ textAlign: 'right' }}>
                                                                 <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', display: 'block' }}>Daily Steps</span>
-                                                                <strong style={{ color: '#38bdf8' }}>{m.health?.steps ? m.health.steps.toLocaleString() : '0'}</strong>
+                                                                <strong style={{ color: '#38bdf8' }}>{((m.health?.steps || 0) + (isSelf && isPedometerActive ? liveSteps : 0)).toLocaleString()}</strong>
                                                             </div>
                                                         ) : (
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'rgba(255,255,255,0.25)' }}>
@@ -1721,7 +1721,13 @@ const FamilyDashboard = () => {
                                             participantsList.forEach(pId => {
                                                 const m = familyState.members.find(member => member.id === pId);
                                                 if (m) {
-                                                    if (challenge.type === 'steps') currentVal += (m.health?.steps || 0);
+                                                    if (challenge.type === 'steps') {
+                                                        let steps = (m.health?.steps || 0);
+                                                        if (currentUser && m.id === currentUser.uid && isPedometerActive) {
+                                                            steps += liveSteps;
+                                                        }
+                                                        currentVal += steps;
+                                                    }
                                                     else if (challenge.type === 'finance') {
                                                         const b = m.finance?.budget || 1000;
                                                         const s = m.finance?.spending || 0;

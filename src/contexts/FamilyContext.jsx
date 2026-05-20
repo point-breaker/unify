@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
+import { useHealth } from './HealthContext';
 
 const FamilyContext = createContext();
 
@@ -19,6 +20,7 @@ const saveSession = (session) => { localStorage.setItem(SESSION_KEY, JSON.string
 
 export const FamilyProvider = ({ children }) => {
     const { currentUser } = useAuth();
+    const { liveSteps, isPedometerActive } = useHealth();
 
     // Internal helper to sync specific data to family doc
     async function syncUserStatsToFamily(familyCode, uid, type, data) {
@@ -421,7 +423,10 @@ export const FamilyProvider = ({ children }) => {
             }
             // Logic for Steps Aggregation
             if (m.permissions?.health !== false) {
-                const steps = m.health?.steps || 0;
+                let steps = m.health?.steps || 0;
+                if (currentUser && m.id === currentUser.uid && isPedometerActive) {
+                    steps += liveSteps;
+                }
                 acc.steps += steps;
             }
             return acc;
@@ -438,6 +443,9 @@ export const FamilyProvider = ({ children }) => {
                 // Normalize data access for Admin vs Members
                 if (type === 'health') {
                     score = m.health?.steps || 0;
+                    if (currentUser && m.id === currentUser.uid && isPedometerActive) {
+                        score += liveSteps;
+                    }
                 }
                 if (type === 'finance') {
                     // Savings = Budget - Spending

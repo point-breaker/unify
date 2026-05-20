@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Heart, Activity, Moon, Utensils, Scale, Calculator, Shield, Check, Bluetooth, Footprints, Radio } from 'lucide-react';
 import styles from './Health.module.css';
@@ -6,7 +6,6 @@ import { useHealth } from '../../contexts/HealthContext';
 import { useFamily } from '../../contexts/FamilyContext';
 import { useAuth } from '../../contexts/AuthContext';
 import DietaryAdvisor from './DietaryAdvisor';
-import { pedometerEngine, PedometerEngine } from './PedometerEngine';
 import { bluetoothManager } from './BluetoothManager';
 
 // Helper to parse dynamic meal portions and calories from compiled AI recommendation markdown
@@ -106,7 +105,10 @@ const HealthDashboard = () => {
 
     // --- Context Data ---
     const { currentUser } = useAuth();
-    const { healthState, updateHealth } = useHealth();
+    const { 
+        healthState, updateHealth, 
+        isPedometerActive, liveSteps, liveCalories, startPedometer, stopPedometer 
+    } = useHealth();
     const { familyState, getHouseholdStats, getLeaderboard, updateFamilyMemberStats } = useFamily();
 
     // Unified helper to synchronize both personal and family telemetry in the exact same frame
@@ -129,49 +131,9 @@ const HealthDashboard = () => {
     // (Unused manualSteps, manualHeartRate, manualSleep removed to satisfy ESLint)
 
     // ─── Live Hardware Tracking State ───
-    const [isPedometerActive, setIsPedometerActive] = useState(false);
-    const [liveSteps, setLiveSteps] = useState(0);
-    const [liveCalories, setLiveCalories] = useState(0);
     const [isBluetoothConnected, setIsBluetoothConnected] = useState(false);
     const [liveHeartRate, setLiveHeartRate] = useState(null);
     const [hrHistory, setHrHistory] = useState([]); // rolling HR chart data
-    const pedometerSaveTimer = useRef(null);
-
-    // ─── Pedometer Controls ───
-    const startPedometer = useCallback(async () => {
-        const weight = healthState.profile?.weight || 70;
-        const success = await pedometerEngine.start((data) => {
-            setLiveSteps(data.steps);
-            setLiveCalories(data.calories);
-        }, weight);
-
-        if (success) {
-            setIsPedometerActive(true);
-            // Auto-save to Firestore every 30 seconds
-            pedometerSaveTimer.current = setInterval(() => {
-                const snap = pedometerEngine.getSnapshot();
-                if (snap.steps > 0) {
-                    syncTelemetry({ steps: (healthState.steps || 0) + snap.steps });
-                }
-            }, 30000);
-        } else {
-            alert('Step tracking requires a mobile device with motion sensors (Chrome on Android).\n\nOn desktop, use Google Fit sync or manual entry instead.');
-        }
-    }, [healthState.profile?.weight, healthState.steps, syncTelemetry]);
-
-    const stopPedometer = useCallback(() => {
-        // Save final count before stopping
-        const snap = pedometerEngine.getSnapshot();
-        if (snap.steps > 0) {
-            syncTelemetry({ steps: (healthState.steps || 0) + snap.steps });
-        }
-        pedometerEngine.stop();
-        pedometerEngine.reset();
-        setIsPedometerActive(false);
-        setLiveSteps(0);
-        setLiveCalories(0);
-        if (pedometerSaveTimer.current) clearInterval(pedometerSaveTimer.current);
-    }, [healthState.steps, syncTelemetry]);
 
     // ─── Bluetooth Heart Rate Controls ───
     const connectHeartRateMonitor = useCallback(async () => {
@@ -199,13 +161,6 @@ const HealthDashboard = () => {
         setLiveHeartRate(null);
     }, []);
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (pedometerEngine.isActive) pedometerEngine.stop();
-            if (pedometerSaveTimer.current) clearInterval(pedometerSaveTimer.current);
-        };
-    }, []);
 
     // Emergency Contact State
     const [emergencyName, setEmergencyName] = useState('');

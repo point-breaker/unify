@@ -33,42 +33,57 @@ export const FamilyProvider = ({ children }) => {
     const { currentUser } = useAuth();
     const { healthState } = useHealth();
 
-    // Internal helper to sync specific data to family doc with sequential queuing
+    // Internal helper to sync specific data to family doc with sequential queuing and 15-second debouncing
     async function syncUserStatsToFamily(familyCode, uid, type, data) {
-        activeSyncPromise = activeSyncPromise.then(async () => {
-            try {
-                const familyRef = doc(db, 'families', familyCode);
-                // Read fresh to avoid race in 'members' array
-                const familySnap = await getDoc(familyRef);
-                if (!familySnap.exists()) return;
+        if (!window.__pendingFamilySyncs) window.__pendingFamilySyncs = {};
+        if (!window.__pendingFamilySyncs[type]) window.__pendingFamilySyncs[type] = {};
+        window.__pendingFamilySyncs[type] = { ...window.__pendingFamilySyncs[type], ...data };
 
-                const famData = familySnap.data();
-                const members = famData.members || [];
+        if (window.__familySyncTimeout) return;
 
-                let changed = false;
-                const updatedMembers = members.map(m => {
-                    if (m.id === uid) {
-                        const existingData = m[type] || {};
-                        const mergedData = { ...existingData, ...data };
-                        // Check if actually different to avoid write loops
-                        if (JSON.stringify(existingData) !== JSON.stringify(mergedData)) {
-                            changed = true;
-                            return { ...m, [type]: mergedData };
+        // Schedule the write to run in 15 seconds to stay well within free tier limits
+        window.__familySyncTimeout = setTimeout(async () => {
+            const currentSyncs = { ...window.__pendingFamilySyncs };
+            window.__pendingFamilySyncs = {}; // clear for next batch
+            window.__familySyncTimeout = null;
+
+            activeSyncPromise = activeSyncPromise.then(async () => {
+                try {
+                    const familyRef = doc(db, 'families', familyCode);
+                    // Read fresh to avoid race in 'members' array
+                    const familySnap = await getDoc(familyRef);
+                    if (!familySnap.exists()) return;
+
+                    const famData = familySnap.data();
+                    const members = famData.members || [];
+
+                    let changed = false;
+                    const updatedMembers = members.map(m => {
+                        if (m.id === uid) {
+                            let memberUpdated = { ...m };
+                            // Apply all accumulated types of updates (e.g. health, finance) in a single operation
+                            Object.keys(currentSyncs).forEach(t => {
+                                const existingData = memberUpdated[t] || {};
+                                const mergedData = { ...existingData, ...currentSyncs[t] };
+                                if (JSON.stringify(existingData) !== JSON.stringify(mergedData)) {
+                                    changed = true;
+                                    memberUpdated[t] = mergedData;
+                                }
+                            });
+                            return memberUpdated;
                         }
+                        return m;
+                    });
+
+                    if (changed) {
+                        await updateDoc(familyRef, { members: updatedMembers });
                     }
-                    return m;
-                });
-
-                if (changed) {
-                    await updateDoc(familyRef, { members: updatedMembers });
+                } catch (e) {
+                    console.error("Sync to family failed:", e);
                 }
-            } catch (e) {
-                console.error("Sync to family failed:", e);
-            }
-        });
-
-        // Wait for this specific sync operation to complete
-        await activeSyncPromise;
+            });
+            await activeSyncPromise;
+        }, 15000);
     }
 
     // We derive 'familyState' from the DB + Session

@@ -98,26 +98,40 @@ export const HealthProvider = ({ children }) => {
             // Trigger Firestore/localStorage update asynchronously outside the synchronous render/commit phase
             Promise.resolve().then(async () => {
                 if (currentUser) {
-                    const userDocRef = doc(db, 'users', currentUser.uid);
+                    // Accumulate pending cloud updates to save daily Firebase Free Tier Quota (20k writes/day)
+                    if (!window.__pendingCloudUpdates) window.__pendingCloudUpdates = {};
                     
-                    // Formulate dot-notation updates so we update targeted nested fields without wiping out others
-                    const firestoreUpdates = {};
                     Object.keys(updates).forEach(key => {
-                        firestoreUpdates[`health.${key}`] = updates[key];
+                        window.__pendingCloudUpdates[`health.${key}`] = updates[key];
                     });
 
-                    try {
-                        await updateDoc(userDocRef, firestoreUpdates);
-                    } catch (e) {
-                        console.warn("updateDoc failed, document might not exist yet. Falling back to setDoc.", e);
+                    // If a sync is already scheduled, don't schedule another one
+                    if (window.__cloudSyncTimeout) return;
+
+                    // Schedule a batch sync every 15 seconds
+                    window.__cloudSyncTimeout = setTimeout(async () => {
+                        const updatesToSync = { ...window.__pendingCloudUpdates };
+                        window.__pendingCloudUpdates = {}; // Clear for next batch
+                        window.__cloudSyncTimeout = null;
+
+                        const userDocRef = doc(db, 'users', currentUser.uid);
                         try {
-                            await setDoc(userDocRef, { health: updates }, { merge: true });
-                        } catch (err) {
-                            console.error("setDoc fallback failed:", err);
+                            await updateDoc(userDocRef, updatesToSync);
+                        } catch (e) {
+                            console.warn("updateDoc failed, document might not exist yet. Falling back to setDoc.", e);
+                            try {
+                                const fallbackHealth = {};
+                                Object.keys(updatesToSync).forEach(k => {
+                                    fallbackHealth[k.replace('health.', '')] = updatesToSync[k];
+                                });
+                                await setDoc(userDocRef, { health: fallbackHealth }, { merge: true });
+                            } catch (err) {
+                                console.error("setDoc fallback failed:", err);
+                            }
                         }
-                    }
+                    }, 15000);
                 } else {
-                    // Local Fallback mode - save to localStorage
+                    // Local Fallback mode - save to localStorage immediately
                     const session = getSession();
                     if (session.familyCode && session.myId) {
                         const localDB = getDB();

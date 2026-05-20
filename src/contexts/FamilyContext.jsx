@@ -21,6 +21,14 @@ const saveSession = (session) => { localStorage.setItem(SESSION_KEY, JSON.string
 // Keep track of the last sync promise to chain them sequentially (preventing race conditions)
 let activeSyncPromise = Promise.resolve();
 
+// Utility to prevent Firebase from hanging indefinitely on Quota Exceeded (Resource Exhausted)
+const withTimeout = (promise, ms, errorMessage) => {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(errorMessage)), ms))
+    ]);
+};
+
 export const FamilyProvider = ({ children }) => {
     const { currentUser } = useAuth();
     const { healthState } = useHealth();
@@ -206,9 +214,9 @@ export const FamilyProvider = ({ children }) => {
 
             try {
                 // Create Family Doc
-                await setDoc(doc(db, 'families', newCode), newFamily);
+                await withTimeout(setDoc(doc(db, 'families', newCode), newFamily), 5000, "Database write timeout. The Firebase project may have exceeded its daily free quota.");
                 // Update User Doc
-                await setDoc(doc(db, 'users', currentUser.uid), { familyCode: newCode }, { merge: true });
+                await withTimeout(setDoc(doc(db, 'users', currentUser.uid), { familyCode: newCode }, { merge: true }), 5000, "Database write timeout. The Firebase project may have exceeded its daily free quota.");
                 return { success: true };
             } catch (e) {
                 console.error("Upgrade failed:", e);
@@ -259,12 +267,12 @@ export const FamilyProvider = ({ children }) => {
 
             try {
                 // 1. Atomically add member to the family members array
-                await updateDoc(familyRef, {
+                await withTimeout(updateDoc(familyRef, {
                     members: arrayUnion(newMember)
-                });
+                }), 5000, "Database write timeout. The Firebase project may have exceeded its daily free quota.");
 
                 // 2. Link user's account to this family
-                await setDoc(doc(db, 'users', currentUser.uid), { familyCode: code }, { merge: true });
+                await withTimeout(setDoc(doc(db, 'users', currentUser.uid), { familyCode: code }, { merge: true }), 5000, "Database write timeout. The Firebase project may have exceeded its daily free quota.");
 
                 // 3. Write join notification — NON-CRITICAL, isolated from join success
                 try {

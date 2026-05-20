@@ -20,7 +20,7 @@ const saveSession = (session) => { localStorage.setItem(SESSION_KEY, JSON.string
 
 export const FamilyProvider = ({ children }) => {
     const { currentUser } = useAuth();
-    const { liveSteps, isPedometerActive } = useHealth();
+    const { healthState } = useHealth();
 
     // Internal helper to sync specific data to family doc
     async function syncUserStatsToFamily(familyCode, uid, type, data) {
@@ -423,10 +423,9 @@ export const FamilyProvider = ({ children }) => {
             }
             // Logic for Steps Aggregation
             if (m.permissions?.health !== false) {
-                let steps = m.health?.steps || 0;
-                if (currentUser && m.id === currentUser.uid && isPedometerActive) {
-                    steps += liveSteps;
-                }
+                const steps = (currentUser && m.id === currentUser.uid)
+                    ? (healthState?.steps || 0)
+                    : (m.health?.steps || 0);
                 acc.steps += steps;
             }
             return acc;
@@ -442,10 +441,9 @@ export const FamilyProvider = ({ children }) => {
                 let score = 0;
                 // Normalize data access for Admin vs Members
                 if (type === 'health') {
-                    score = m.health?.steps || 0;
-                    if (currentUser && m.id === currentUser.uid && isPedometerActive) {
-                        score += liveSteps;
-                    }
+                    score = (currentUser && m.id === currentUser.uid)
+                        ? (healthState?.steps || 0)
+                        : (m.health?.steps || 0);
                 }
                 if (type === 'finance') {
                     // Savings = Budget - Spending

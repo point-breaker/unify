@@ -126,8 +126,10 @@ export const HealthProvider = ({ children }) => {
 
     const stopPedometer = () => {
         const snap = pedometerEngine.getSnapshot();
+        const finalSteps = baseStepsRef.current + snap.steps;
+        
         if (snap.steps > 0) {
-            updateHealth({ steps: baseStepsRef.current + snap.steps });
+            updateHealth({ steps: finalSteps });
         }
         pedometerEngine.stop();
         pedometerEngine.reset();
@@ -159,9 +161,12 @@ export const HealthProvider = ({ children }) => {
         }
     }, [currentUser]);
 
+    const displaySteps = isPedometerActive ? (baseStepsRef.current + liveSteps) : healthState.steps;
+
     return (
         <HealthContext.Provider value={{ 
-            healthState, updateHealth, updateProfile,
+            healthState: { ...healthState, steps: displaySteps }, 
+            updateHealth, updateProfile,
             isPedometerActive, liveSteps, liveCalories, startPedometer, stopPedometer 
         }}>
             {children}

@@ -553,14 +553,12 @@ const HealthDashboard = () => {
                         </div>
                         <div className={styles.metric}>
                             <span className={styles.value}>
-                                {isPedometerActive 
-                                    ? ((displaySteps || 0) + liveSteps).toLocaleString() 
-                                    : (displaySteps !== null ? displaySteps.toLocaleString() : 'No Data')}
+                                {displaySteps !== null ? displaySteps.toLocaleString() : 'No Data'}
                             </span>
                             <span className={styles.unit}>steps</span>
                         </div>
                         <div className={styles.progressBar} style={{ marginTop: 10, background: 'rgba(255,255,255,0.1)' }}>
-                            <div className={styles.progressFill} style={{ width: `${Math.min((((displaySteps || 0) + (isPedometerActive ? liveSteps : 0)) / (viewMode === 'household' ? 30000 : healthState.targetSteps)) * 100, 100)}%`, background: 'var(--success)' }}></div>
+                            <div className={styles.progressFill} style={{ width: `${Math.min(((displaySteps || 0) / (viewMode === 'household' ? 30000 : healthState.targetSteps)) * 100, 100)}%`, background: 'var(--success)' }}></div>
                         </div>
 
                         {/* Live Pedometer Controls */}

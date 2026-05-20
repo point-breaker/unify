@@ -19,7 +19,7 @@ const DEFAULT_CONTACTS = [
 
 const FamilyDashboard = () => {
     const { currentUser } = useAuth();
-    const { healthState, updateHealth, liveSteps, isPedometerActive } = useHealth();
+    const { healthState, updateHealth } = useHealth();
     const { 
         familyState, upgradeToFamily, joinFamily, // leaveFamily, 
         toggleSharing, getHouseholdStats, getLeaderboard, // updateFamilyMemberStats,
@@ -1505,7 +1505,7 @@ const FamilyDashboard = () => {
                                                         {m.permissions?.health !== false ? (
                                                             <div style={{ textAlign: 'right' }}>
                                                                 <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', display: 'block' }}>Daily Steps</span>
-                                                                <strong style={{ color: '#38bdf8' }}>{((m.health?.steps || 0) + (isSelf && isPedometerActive ? liveSteps : 0)).toLocaleString()}</strong>
+                                                                <strong style={{ color: '#38bdf8' }}>{(isSelf ? (healthState?.steps || 0) : (m.health?.steps || 0)).toLocaleString()}</strong>
                                                             </div>
                                                         ) : (
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'rgba(255,255,255,0.25)' }}>
@@ -1722,10 +1722,9 @@ const FamilyDashboard = () => {
                                                 const m = familyState.members.find(member => member.id === pId);
                                                 if (m) {
                                                     if (challenge.type === 'steps') {
-                                                        let steps = (m.health?.steps || 0);
-                                                        if (currentUser && m.id === currentUser.uid && isPedometerActive) {
-                                                            steps += liveSteps;
-                                                        }
+                                                        const steps = (currentUser && m.id === currentUser.uid)
+                                                            ? (healthState?.steps || 0)
+                                                            : (m.health?.steps || 0);
                                                         currentVal += steps;
                                                     }
                                                     else if (challenge.type === 'finance') {

@@ -571,7 +571,13 @@ const HealthDashboard = () => {
                                             Live Tracking • +{liveSteps} steps • {liveCalories} kcal burned
                                         </div>
                                         <button
-                                            onClick={stopPedometer}
+                                            onClick={() => {
+                                                stopPedometer((finalSteps) => {
+                                                    if (updateFamilyMemberStats) {
+                                                        updateFamilyMemberStats('health', { steps: finalSteps });
+                                                    }
+                                                });
+                                            }}
                                             style={{ padding: '6px 12px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8, color: '#ef4444', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
                                         >
                                             ■ Stop Tracking
@@ -579,7 +585,7 @@ const HealthDashboard = () => {
                                     </>
                                 ) : (
                                     <button
-                                        onClick={startPedometer}
+                                        onClick={() => startPedometer(displaySteps)}
                                         style={{ padding: '6px 12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 8, color: '#34d399', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
                                     >
                                         <Footprints size={14} /> Start Step Tracking

@@ -18,41 +18,49 @@ const saveDB = (db) => { localStorage.setItem(DB_KEY, JSON.stringify(db)); windo
 const getSession = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || '{}'); } catch { return {}; } };
 const saveSession = (session) => { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); window.dispatchEvent(new Event('storage')); };
 
+// Keep track of the last sync promise to chain them sequentially (preventing race conditions)
+let activeSyncPromise = Promise.resolve();
+
 export const FamilyProvider = ({ children }) => {
     const { currentUser } = useAuth();
     const { healthState } = useHealth();
 
-    // Internal helper to sync specific data to family doc
+    // Internal helper to sync specific data to family doc with sequential queuing
     async function syncUserStatsToFamily(familyCode, uid, type, data) {
-        try {
-            const familyRef = doc(db, 'families', familyCode);
-            // Read fresh to avoid race in 'members' array
-            const familySnap = await getDoc(familyRef);
-            if (!familySnap.exists()) return;
+        activeSyncPromise = activeSyncPromise.then(async () => {
+            try {
+                const familyRef = doc(db, 'families', familyCode);
+                // Read fresh to avoid race in 'members' array
+                const familySnap = await getDoc(familyRef);
+                if (!familySnap.exists()) return;
 
-            const famData = familySnap.data();
-            const members = famData.members || [];
+                const famData = familySnap.data();
+                const members = famData.members || [];
 
-            let changed = false;
-            const updatedMembers = members.map(m => {
-                if (m.id === uid) {
-                    const existingData = m[type] || {};
-                    // Deep compare or just overwrite? Overwrite is safer for "latest wins"
-                    // Check if actually different to avoid write loops
-                    if (JSON.stringify(existingData) !== JSON.stringify({ ...existingData, ...data })) {
-                        changed = true;
-                        return { ...m, [type]: { ...existingData, ...data } };
+                let changed = false;
+                const updatedMembers = members.map(m => {
+                    if (m.id === uid) {
+                        const existingData = m[type] || {};
+                        const mergedData = { ...existingData, ...data };
+                        // Check if actually different to avoid write loops
+                        if (JSON.stringify(existingData) !== JSON.stringify(mergedData)) {
+                            changed = true;
+                            return { ...m, [type]: mergedData };
+                        }
                     }
-                }
-                return m;
-            });
+                    return m;
+                });
 
-            if (changed) {
-                await updateDoc(familyRef, { members: updatedMembers });
+                if (changed) {
+                    await updateDoc(familyRef, { members: updatedMembers });
+                }
+            } catch (e) {
+                console.error("Sync to family failed:", e);
             }
-        } catch (e) {
-            console.error("Sync to family failed:", e);
-        }
+        });
+
+        // Wait for this specific sync operation to complete
+        await activeSyncPromise;
     }
 
     // We derive 'familyState' from the DB + Session
@@ -411,11 +419,28 @@ export const FamilyProvider = ({ children }) => {
         }
     };
 
+    const currentUserId = currentUser ? currentUser.uid : (getSession().myId || 'admin');
+
+    const displayMembers = (familyState.members || []).map(m => {
+        if (m.id === currentUserId) {
+            return {
+                ...m,
+                health: {
+                    ...m.health,
+                    steps: healthState?.steps !== undefined && healthState.steps !== null ? healthState.steps : m.health?.steps,
+                    heartRate: healthState?.heartRate !== undefined && healthState.heartRate !== null ? healthState.heartRate : m.health?.heartRate,
+                    sleep: healthState?.sleep !== undefined && healthState.sleep !== null ? healthState.sleep : m.health?.sleep
+                }
+            };
+        }
+        return m;
+    });
+
     // --- AGGREGATION HELPERS ---
     const getHouseholdStats = () => {
-        if (!familyState.members || familyState.members.length === 0) return null;
+        if (!displayMembers || displayMembers.length === 0) return null;
 
-        return familyState.members.reduce((acc, m) => {
+        return displayMembers.reduce((acc, m) => {
             // Only count if permission is granted AND data exists
             if (m.permissions?.finance !== false && m.finance) {
                 acc.netWorth += m.finance.netWorth || 0;
@@ -423,27 +448,22 @@ export const FamilyProvider = ({ children }) => {
             }
             // Logic for Steps Aggregation
             if (m.permissions?.health !== false) {
-                const steps = (currentUser && m.id === currentUser.uid)
-                    ? (healthState?.steps || 0)
-                    : (m.health?.steps || 0);
-                acc.steps += steps;
+                acc.steps += m.health?.steps || 0;
             }
             return acc;
         }, { netWorth: 0, spending: 0, steps: 0 });
     };
 
     const getLeaderboard = (type) => {
-        if (!familyState.members) return [];
+        if (!displayMembers) return [];
 
-        return familyState.members
+        return displayMembers
             .filter(m => m.permissions?.[type] !== false) // Private members hidden from leaderboard
             .map(m => {
                 let score = 0;
                 // Normalize data access for Admin vs Members
                 if (type === 'health') {
-                    score = (currentUser && m.id === currentUser.uid)
-                        ? (healthState?.steps || 0)
-                        : (m.health?.steps || 0);
+                    score = m.health?.steps || 0;
                 }
                 if (type === 'finance') {
                     // Savings = Budget - Spending
@@ -451,8 +471,7 @@ export const FamilyProvider = ({ children }) => {
                     const spending = m.finance?.spending || 0;
                     score = Math.max(0, budget - spending);
                 }
-                // Use currentUser to identify 'self' in Cloud mode, or fallback to role logic
-                const isSelf = currentUser ? (m.id === currentUser.uid) : (m.id === familyState.role);
+                const isSelf = m.id === currentUserId;
                 return { name: m.name, score: Math.round(score), id: m.id, isSelf };
             })
             .sort((a, b) => b.score - a.score); // Descending
@@ -606,10 +625,12 @@ export const FamilyProvider = ({ children }) => {
 
     return (
         <FamilyContext.Provider value={{ 
-            familyState, upgradeToFamily, joinFamily, leaveFamily, 
+            familyState: { ...familyState, members: displayMembers }, 
+            upgradeToFamily, joinFamily, leaveFamily, 
             toggleSharing, getHouseholdStats, getLeaderboard, 
             updateFamilyMemberStats, createChallenge, joinChallenge,
-            markNotificationsRead, removeMember, updateMemberRole, updateFamilyRules
+            markNotificationsRead, removeMember, updateMemberRole, updateFamilyRules,
+            myId: currentUserId
         }}>
             {children}
         </FamilyContext.Provider>

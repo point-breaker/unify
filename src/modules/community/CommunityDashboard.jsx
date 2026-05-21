@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CloudRain, Wind, MapPin, AlertTriangle, Info, Calendar, Users, Sun, Cloud, Thermometer, Droplets, Activity, ToggleLeft, ToggleRight, ExternalLink, Plus, Trash2, Clock, User, X } from 'lucide-react';
+import { CloudRain, Wind, MapPin, AlertTriangle, Info, Calendar, Users, Sun, Cloud, Thermometer, Droplets, Activity, ToggleLeft, ToggleRight, ExternalLink, Plus, Trash2, Clock, User, X, Bell, BellOff, Volume2 } from 'lucide-react';
 import styles from './Community.module.css';
 import { useLocation } from '../../contexts/LocationContext';
 import { useCommunity } from '../../contexts/CommunityContext';
@@ -180,6 +180,11 @@ const CommunityDashboard = () => {
 
     const [customEvents, setCustomEvents] = useState([]);
     const [rsvpEvents, setRsvpEvents] = useState([]);
+    const [reminderEvents, setReminderEvents] = useState([]);
+    const [dismissedReminders, setDismissedReminders] = useState([]);
+    const [activeIncomingCall, setActiveIncomingCall] = useState(null);
+    const [isCallAnswered, setIsCallAnswered] = useState(false);
+    const [activeAudioObj, setActiveAudioObj] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [newEvent, setNewEvent] = useState({
         title: '',
@@ -227,6 +232,12 @@ const CommunityDashboard = () => {
                     }
                     if (data.rsvpEvents) {
                         setRsvpEvents(data.rsvpEvents);
+                    }
+                    if (data.reminderEvents) {
+                        setReminderEvents(data.reminderEvents);
+                    }
+                    if (data.dismissedReminders) {
+                        setDismissedReminders(data.dismissedReminders);
                     }
                 }
             } catch (err) {
@@ -397,6 +408,206 @@ const CommunityDashboard = () => {
             console.error("Failed to update RSVP:", err);
         }
     };
+
+    const handleToggleReminder = async (eventId) => {
+        if (!currentUser) return;
+
+        const isReminderActive = reminderEvents.includes(eventId);
+        let updatedReminders;
+        if (isReminderActive) {
+            updatedReminders = reminderEvents.filter(id => id !== eventId);
+        } else {
+            updatedReminders = [...reminderEvents, eventId];
+        }
+
+        setReminderEvents(updatedReminders);
+
+        try {
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            await setDoc(userDocRef, { reminderEvents: updatedReminders }, { merge: true });
+        } catch (err) {
+            console.error("Failed to update reminder toggle:", err);
+        }
+    };
+
+    const playSynthesizedRingtone = () => {
+        if (typeof window === 'undefined') return null;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return null;
+
+        try {
+            const ctx = new AudioContext();
+            let isPlaying = true;
+            let vibrationInterval = null;
+
+            const playBeep = () => {
+                if (!isPlaying) return;
+                const osc1 = ctx.createOscillator();
+                const osc2 = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc1.frequency.setValueAtTime(440, ctx.currentTime);
+                osc2.frequency.setValueAtTime(480, ctx.currentTime);
+
+                gain.gain.setValueAtTime(0, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime + 1.8);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
+
+                osc1.start(ctx.currentTime);
+                osc2.start(ctx.currentTime);
+                osc1.stop(ctx.currentTime + 2.0);
+                osc2.stop(ctx.currentTime + 2.0);
+
+                setTimeout(() => {
+                    if (isPlaying) playBeep();
+                }, 4000);
+            };
+
+            playBeep();
+
+            if (navigator.vibrate) {
+                navigator.vibrate([600, 400, 600, 400, 600]);
+                vibrationInterval = setInterval(() => {
+                    if (isPlaying) {
+                        navigator.vibrate([600, 400, 600, 400, 600]);
+                    }
+                }, 4000);
+            }
+
+            return {
+                stop: () => {
+                    isPlaying = false;
+                    if (vibrationInterval) clearInterval(vibrationInterval);
+                    ctx.close();
+                }
+            };
+        } catch (e) {
+            console.error("Web Audio ringtone failed to start:", e);
+            return null;
+        }
+    };
+
+    const playAnswerBeep = () => {
+        if (typeof window === 'undefined') return;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        
+        try {
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(660, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+            
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+            
+            setTimeout(() => ctx.close(), 500);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleSimulateReminderCall = (evt) => {
+        if (activeIncomingCall) return;
+
+        setActiveIncomingCall(evt);
+        setIsCallAnswered(false);
+
+        const audioObj = playSynthesizedRingtone();
+        setActiveAudioObj(audioObj);
+    };
+
+    const handleAnswerCall = () => {
+        if (activeAudioObj) {
+            activeAudioObj.stop();
+            setActiveAudioObj(null);
+        }
+        playAnswerBeep();
+        setIsCallAnswered(true);
+    };
+
+    const handleDismissReminder = async (eventId) => {
+        if (!currentUser) return;
+
+        if (activeAudioObj) {
+            activeAudioObj.stop();
+            setActiveAudioObj(null);
+        }
+
+        const updatedDismissed = [...dismissedReminders, eventId];
+        setDismissedReminders(updatedDismissed);
+        setActiveIncomingCall(null);
+        setIsCallAnswered(false);
+
+        try {
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            await setDoc(userDocRef, { dismissedReminders: updatedDismissed }, { merge: true });
+        } catch (err) {
+            console.error("Failed to dismiss reminder:", err);
+        }
+    };
+
+    const getReminderTriggerTime = (dateStr) => {
+        if (!dateStr) return null;
+        let eventDate;
+        if (dateStr.includes('-')) {
+            eventDate = new Date(dateStr + 'T00:00:00');
+        } else {
+            eventDate = new Date(dateStr);
+        }
+        if (isNaN(eventDate.getTime())) return null;
+
+        const triggerTime = new Date(eventDate.getTime() - 24 * 60 * 60 * 1000);
+        triggerTime.setHours(12, 0, 0, 0);
+        return triggerTime;
+    };
+
+    // Background interval check for scheduled event reminders (day before at 12:00 Noon local time)
+    useEffect(() => {
+        if (!currentUser || sortedEvents.length === 0) return;
+
+        const checkReminders = () => {
+            const now = new Date();
+            for (const evt of sortedEvents) {
+                if (reminderEvents.includes(evt.id) && !dismissedReminders.includes(evt.id)) {
+                    const triggerTime = getReminderTriggerTime(evt.date);
+                    if (triggerTime && now >= triggerTime) {
+                        handleSimulateReminderCall(evt);
+                        break;
+                    }
+                }
+            }
+        };
+
+        checkReminders();
+        const checkInterval = setInterval(checkReminders, 10000);
+
+        return () => {
+            clearInterval(checkInterval);
+        };
+    }, [reminderEvents, dismissedReminders, sortedEvents, currentUser]);
+
+    // Clean up ringing on unmount
+    useEffect(() => {
+        return () => {
+            if (activeAudioObj) {
+                activeAudioObj.stop();
+            }
+        };
+    }, [activeAudioObj]);
 
     // --- Helpers ---
     const getTemp = () => {
@@ -781,30 +992,51 @@ const CommunityDashboard = () => {
                                             )}
                                         </div>
                                     </div>
-                                    {evt.isCustom ? (
+                                    <div className={styles.eventActions}>
                                         <button
-                                            onClick={() => handleDeleteEvent(evt.id, evt.type)}
-                                            className={styles.deleteBtn}
-                                            title={`Delete Custom ${evt.type}`}
+                                            onClick={() => handleToggleReminder(evt.id)}
+                                            className={`${styles.reminderBtn} ${reminderEvents.includes(evt.id) ? styles.activeBell : ''}`}
+                                            title={reminderEvents.includes(evt.id) ? "Remove Reminder" : "Set Reminder (Day before at 12 PM)"}
                                         >
-                                            <Trash2 size={16} />
+                                            {reminderEvents.includes(evt.id) ? <Bell size={16} /> : <BellOff size={16} />}
                                         </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleToggleRsvp(evt.id)}
-                                            className={styles.joinBtn}
-                                            style={{
-                                                background: isJoined ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                                                color: isJoined ? 'var(--success)' : 'var(--text-secondary)',
-                                                border: isJoined ? '1px solid var(--success)' : '1px solid var(--glass-border)',
-                                                width: 'auto',
-                                                padding: '0 12px',
-                                                gap: 6
-                                            }}
-                                        >
-                                            {isJoined ? 'Going' : 'RSVP'}
-                                        </button>
-                                    )}
+
+                                        {reminderEvents.includes(evt.id) && (
+                                            <button
+                                                onClick={() => handleSimulateReminderCall(evt)}
+                                                className={styles.demoAlarmBtn}
+                                                title="Trigger Demo Alarm Call Now"
+                                            >
+                                                <Volume2 size={14} />
+                                                <span>Demo</span>
+                                            </button>
+                                        )}
+
+                                        {evt.isCustom ? (
+                                            <button
+                                                onClick={() => handleDeleteEvent(evt.id, evt.type)}
+                                                className={styles.deleteBtn}
+                                                title={`Delete Custom ${evt.type}`}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleToggleRsvp(evt.id)}
+                                                className={styles.joinBtn}
+                                                style={{
+                                                    background: isJoined ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                                                    color: isJoined ? 'var(--success)' : 'var(--text-secondary)',
+                                                    border: isJoined ? '1px solid var(--success)' : '1px solid var(--glass-border)',
+                                                    width: 'auto',
+                                                    padding: '0 12px',
+                                                    gap: 6
+                                                }}
+                                            >
+                                                {isJoined ? 'Going' : 'RSVP'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         }) : (
@@ -815,6 +1047,44 @@ const CommunityDashboard = () => {
                     </div>
                 </section>
             </div>
+
+            {/* Simulated Ringing Call Overlay */}
+            {activeIncomingCall && !isCallAnswered && (
+                <div className={styles.callOverlay}>
+                    <div className={styles.callerContainer}>
+                        <div className={`${styles.callerAvatar} ${styles.pulseAvatar}`}>📞</div>
+                        <h3 className={styles.callerName}>Unify Assistant</h3>
+                        <p className={styles.callerStatus}>Incoming Event Reminder Call...</p>
+                        <h4 className={styles.callEventTitle}>{activeIncomingCall.title}</h4>
+                        <p className={styles.callEventMeta}>Tomorrow at {activeIncomingCall.time || 'All Day'}</p>
+                    </div>
+                    <div className={styles.callActionRow}>
+                        <button onClick={() => handleDismissReminder(activeIncomingCall.id)} className={styles.declineCallBtn}>
+                            Decline
+                        </button>
+                        <button onClick={handleAnswerCall} className={styles.answerCallBtn}>
+                            Answer
+                        </button>
+                    </div>
+                </div>
+            )}
+            {/* Active Call Conversation Overlay */}
+            {activeIncomingCall && isCallAnswered && (
+                <div className={styles.callOverlay}>
+                    <div className={styles.callerContainer}>
+                        <div className={styles.visualizerWave}>
+                            <span /><span /><span /><span /><span />
+                        </div>
+                        <h3 className={styles.callerName}>Call Active</h3>
+                        <div className={styles.speechBubble}>
+                            "Hello! This is your Unify voice reminder. Your event, <strong>{activeIncomingCall.title}</strong>, is scheduled for tomorrow at {activeIncomingCall.time || 'All Day'}. Have a wonderful day!"
+                        </div>
+                    </div>
+                    <button onClick={() => handleDismissReminder(activeIncomingCall.id)} className={styles.hangUpBtn}>
+                        Hang Up
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

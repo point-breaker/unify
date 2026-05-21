@@ -645,3 +645,323 @@
     transform: translate(1px, -1px);
     color: #818CF8;
 }
+
+/* Event Reminder Actions Container */
+.eventActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Base Reminder Button Style */
+.reminderBtn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reminderBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+    transform: scale(1.05);
+}
+
+/* Active Gold Bell Toggle Style */
+.activeBell {
+    background: rgba(245, 158, 11, 0.15) !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    color: #F59E0B !important;
+    animation: bellShake 0.5s ease-in-out;
+}
+
+.activeBell:hover {
+    background: rgba(245, 158, 11, 0.25) !important;
+    border-color: rgba(245, 158, 11, 0.6) !important;
+}
+
+@keyframes bellShake {
+    0%, 100% { transform: rotate(0); }
+    15% { transform: rotate(-15deg); }
+    30% { transform: rotate(10deg); }
+    45% { transform: rotate(-10deg); }
+    60% { transform: rotate(5deg); }
+    75% { transform: rotate(-5deg); }
+}
+
+/* Demo Alarm Button Style */
+.demoAlarmBtn {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: #818CF8;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.demoAlarmBtn:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #a5b4fc;
+    transform: translateY(-1px);
+}
+
+/* Fullscreen Glassmorphic Incoming Call Overlay */
+.callOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10, 12, 22, 0.85);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 40px 20px;
+    animation: fadeInOverlay 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to { opacity: 1; backdrop-filter: blur(25px); }
+}
+
+.callerContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+}
+
+.callerAvatar {
+    width: 96px;
+    height: 96px;
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin-bottom: 24px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(79, 70, 229, 0.5);
+}
+
+/* Pulse Avatar Animation */
+.pulseAvatar {
+    animation: avatarPulse 2s infinite ease-in-out;
+}
+
+@keyframes avatarPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.6), 0 10px 30px rgba(79, 70, 229, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 25px rgba(79, 70, 229, 0), 0 10px 30px rgba(79, 70, 229, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0), 0 10px 30px rgba(79, 70, 229, 0.5);
+    }
+}
+
+.callerName {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    background: linear-gradient(to right, #ffffff, #a5b4fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.callerStatus {
+    font-size: 14px;
+    color: #818CF8;
+    margin: 0 0 32px 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.callEventTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+    line-height: 1.4;
+    padding: 0 20px;
+}
+
+.callEventMeta {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Call Action Controls Row */
+.callActionRow {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.declineCallBtn, .answerCallBtn, .hangUpBtn {
+    border: none;
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+}
+
+.declineCallBtn {
+    background: #EF4444;
+    color: white;
+    width: 120px;
+    height: 52px;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.declineCallBtn:hover {
+    background: #DC2626;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5);
+}
+
+.answerCallBtn {
+    background: #10B981;
+    color: white;
+    width: 120px;
+    height: 52px;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.answerCallBtn:hover {
+    background: #059669;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.5);
+}
+
+.hangUpBtn {
+    background: #EF4444;
+    color: white;
+    width: 180px;
+    height: 54px;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.hangUpBtn:hover {
+    background: #DC2626;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5);
+}
+
+/* Glassmorphic Speech Bubble Transcript */
+.speechBubble {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 24px;
+    color: #e2e8f0;
+    font-size: 16px;
+    line-height: 1.6;
+    text-align: left;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+    max-width: 450px;
+    margin-top: 16px;
+    animation: floatBubble 4s infinite ease-in-out;
+}
+
+@keyframes floatBubble {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.speechBubble strong {
+    color: #818CF8;
+}
+
+/* Audio Visualizer Waves (Voice Assistant Waves) */
+.visualizerWave {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 96px;
+    margin-bottom: 24px;
+}
+
+.visualizerWave span {
+    display: inline-block;
+    width: 6px;
+    height: 15px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #4F46E5 0%, #7C3AED 100%);
+    animation: wavePulse 1.2s infinite ease-in-out;
+}
+
+.visualizerWave span:nth-child(2) {
+    animation-delay: 0.15s;
+    height: 30px;
+}
+
+.visualizerWave span:nth-child(3) {
+    animation-delay: 0.3s;
+    height: 45px;
+}
+
+.visualizerWave span:nth-child(4) {
+    animation-delay: 0.45s;
+    height: 25px;
+}
+
+.visualizerWave span:nth-child(5) {
+    animation-delay: 0.6s;
+    height: 10px;
+}
+
+@keyframes wavePulse {
+    0%, 100% {
+        transform: scaleY(1);
+        filter: brightness(1);
+    }
+    50% {
+        transform: scaleY(2.2);
+        filter: brightness(1.3);
+    }
+}

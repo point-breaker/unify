@@ -48,9 +48,24 @@ export const HealthProvider = ({ children }) => {
     // ─── Transition Buffer for Pedometer Stop ───
     const [lastStepsRecord, setLastStepsRecord] = useState(null);
 
-    // 1. Sync from Firestore when Component Mounts / User Changes
+    // 1. Sync from Firestore when Component Mounts / User Changes (with localStorage hybrid rehydration fallback)
     useEffect(() => {
         if (!currentUser) return;
+
+        const backupKey = `unify_health_backup_${currentUser.uid}`;
+        
+        // 1a. Instantly rehydrate from local backup to prevent "flash of zero steps" on page load
+        const localBackup = localStorage.getItem(backupKey);
+        if (localBackup) {
+            try {
+                const parsed = JSON.parse(localBackup);
+                if (parsed) {
+                    setHealthState(prev => ({ ...prev, ...parsed }));
+                }
+            } catch (e) {
+                console.error("Failed to parse local health backup:", e);
+            }
+        }
 
         const userDocRef = doc(db, 'users', currentUser.uid);
 
@@ -59,7 +74,33 @@ export const HealthProvider = ({ children }) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 if (data.health) {
-                    setHealthState(prev => ({ ...prev, ...data.health }));
+                    setHealthState(prev => {
+                        const merged = { ...prev, ...data.health };
+                        
+                        // 1b. Check if local backup steps are higher (which means tab was closed before last debounce sync)
+                        const backupStr = localStorage.getItem(backupKey);
+                        if (backupStr) {
+                            try {
+                                const parsedBackup = JSON.parse(backupStr);
+                                const backupSteps = Number(parsedBackup?.steps);
+                                const firestoreSteps = Number(data.health.steps || 0);
+                                
+                                if (!isNaN(backupSteps) && backupSteps > firestoreSteps) {
+                                    console.log(`[Backup Recover] Local backup steps (${backupSteps}) are greater than Firestore steps (${firestoreSteps}). Triggering cloud recovery...`);
+                                    merged.steps = backupSteps;
+                                    
+                                    // Trigger immediate recovery sync
+                                    Promise.resolve().then(() => {
+                                        updateHealth({ steps: backupSteps }, true);
+                                    });
+                                }
+                            } catch (e) {
+                                console.error("[Backup Recover] Error parsing local backup:", e);
+                            }
+                        }
+                        
+                        return merged;
+                    });
                 }
             } else {
                 console.log("No user data yet");
@@ -93,8 +134,15 @@ export const HealthProvider = ({ children }) => {
     // ─── Auto-clear Transition Buffer is handled declaratively in displaySteps ───
 
     // 2. Function to Update Health (Also writes to Firestore or localStorage using recursive dot-notation update)
-    const updateHealth = async (updates) => {
+    const updateHealth = async (updates, immediate = false) => {
         setHealthState(prev => {
+            const nextState = { ...prev, ...updates };
+
+            // Instantly sync to local backup (completely synchronous) to protect against unexpected page closes/unloads
+            if (currentUser) {
+                localStorage.setItem(`unify_health_backup_${currentUser.uid}`, JSON.stringify(nextState));
+            }
+
             // Trigger Firestore/localStorage update asynchronously outside the synchronous render/commit phase
             Promise.resolve().then(async () => {
                 if (currentUser) {
@@ -104,6 +152,33 @@ export const HealthProvider = ({ children }) => {
                     Object.keys(updates).forEach(key => {
                         window.__pendingCloudUpdates[`health.${key}`] = updates[key];
                     });
+
+                    // If immediate flush is requested (e.g. on pedometer stop or backup recovery)
+                    if (immediate) {
+                        if (window.__cloudSyncTimeout) {
+                            clearTimeout(window.__cloudSyncTimeout);
+                            window.__cloudSyncTimeout = null;
+                        }
+                        const updatesToSync = { ...window.__pendingCloudUpdates };
+                        window.__pendingCloudUpdates = {}; // Clear immediately
+
+                        const userDocRef = doc(db, 'users', currentUser.uid);
+                        try {
+                            await updateDoc(userDocRef, updatesToSync);
+                        } catch (e) {
+                            console.warn("updateDoc failed, document might not exist yet. Falling back to setDoc.", e);
+                            try {
+                                const fallbackHealth = {};
+                                Object.keys(updatesToSync).forEach(k => {
+                                    fallbackHealth[k.replace('health.', '')] = updatesToSync[k];
+                                });
+                                await setDoc(userDocRef, { health: fallbackHealth }, { merge: true });
+                            } catch (err) {
+                                console.error("setDoc fallback failed:", err);
+                            }
+                        }
+                        return;
+                    }
 
                     // If a sync is already scheduled, don't schedule another one
                     if (window.__cloudSyncTimeout) return;
@@ -151,7 +226,7 @@ export const HealthProvider = ({ children }) => {
                 }
             });
 
-            return { ...prev, ...updates };
+            return nextState;
         });
     };
 
@@ -252,7 +327,7 @@ export const HealthProvider = ({ children }) => {
         setLastStepsRecord(finalSteps);
 
         // Always update steps and execute callback to guarantee sync to leaderboard/challenges
-        updateHealth({ steps: finalSteps });
+        updateHealth({ steps: finalSteps }, true);
         if (typeof onStopCallback === 'function') {
             onStopCallback(finalSteps);
         }

@@ -50,6 +50,32 @@ export const LocationProvider = ({ children }) => {
 
     const detectLocation = useCallback(async () => {
         setLoading(true);
+
+        const fallbackToIP = async () => {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                if (data && data.city) {
+                    const country = data.country_code ? data.country_code.toUpperCase() : 'US';
+                    const currency = deriveCurrency(country);
+                    setLocation({
+                        city: data.city,
+                        region: data.region || 'Unknown Region',
+                        country: country,
+                        currency: currency.symbol,
+                        currencyCode: currency.code,
+                        lat: data.latitude,
+                        lon: data.longitude
+                    });
+                    setLoading(false);
+                    return true;
+                }
+            } catch (e) {
+                console.error('IP Geolocation fallback failed:', e);
+            }
+            return false;
+        };
+
         // 1. Try Browser Geolocation
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -61,7 +87,7 @@ export const LocationProvider = ({ children }) => {
                         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                         const data = await res.json();
 
-                        const country = data.address.country_code.toUpperCase();
+                        const country = data.address && data.address.country_code ? data.address.country_code.toUpperCase() : 'US';
                         const currency = deriveCurrency(country);
 
                         setLocation({
@@ -76,17 +102,19 @@ export const LocationProvider = ({ children }) => {
                         setLoading(false);
                     } catch (error) {
                         console.error('Reverse Geocode Error:', error);
-                        // Fallback to Timezone guess
-                        fallbackToTimezone();
+                        const ok = await fallbackToIP();
+                        if (!ok) fallbackToTimezone();
                     }
                 },
-                (error) => {
+                async (error) => {
                     console.error('Geolocation Error:', error);
-                    fallbackToTimezone();
+                    const ok = await fallbackToIP();
+                    if (!ok) fallbackToTimezone();
                 }
             );
         } else {
-            fallbackToTimezone();
+            const ok = await fallbackToIP();
+            if (!ok) fallbackToTimezone();
         }
     }, [fallbackToTimezone]);
 

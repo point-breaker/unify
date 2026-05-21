@@ -278,3 +278,206 @@
         transform: translateY(0);
     }
 }
+
+/* Refined toggle button states */
+.activeToggle {
+    background: var(--info);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Glassmorphic Base Card */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), 0 8px 30px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Section styling */
+.section {
+    margin-bottom: var(--space-xl);
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--space-md);
+}
+
+.subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Budget Status in Header */
+.budgetStatus {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+/* Premium Button for log expense */
+.spendBtn {
+    background: transparent;
+    border: 1px dashed var(--glass-border);
+    color: var(--text-secondary);
+    font-size: 11px;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.spendBtn:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+}
+
+/* Advanced Transaction Ledger Tables */
+.card table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.card th {
+    padding: 12px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card td {
+    padding: 14px 12px;
+    font-size: 13.5px;
+    color: var(--text-primary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all 0.2s ease;
+}
+
+.card tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.card tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.card tbody tr:hover td {
+    color: white;
+}
+
+/* Custom Scrollbars for ledger and filters */
+.card div[style*="overflow-y"],
+.card div[style*="overflow-x"],
+.card div[style*="overflowY"] {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.card div[style*="overflow-y"]::-webkit-scrollbar,
+.card div[style*="overflow-x"]::-webkit-scrollbar,
+.card div[style*="overflowY"]::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.card div[style*="overflow-y"]::-webkit-scrollbar-track,
+.card div[style*="overflow-x"]::-webkit-scrollbar-track,
+.card div[style*="overflowY"]::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.card div[style*="overflow-y"]::-webkit-scrollbar-thumb,
+.card div[style*="overflow-x"]::-webkit-scrollbar-thumb,
+.card div[style*="overflowY"]::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+.card div[style*="overflow-y"]::-webkit-scrollbar-thumb:hover,
+.card div[style*="overflow-x"]::-webkit-scrollbar-thumb:hover,
+.card div[style*="overflowY"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Depletion Pulsing Warning State */
+@keyframes pulseWarning {
+    0% {
+        box-shadow: 0 0 4px rgba(245, 158, 11, 0.2);
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+        border-color: rgba(245, 158, 11, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 4px rgba(245, 158, 11, 0.2);
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+}
+
+.envelopeCard[style*="boxShadow"] {
+    animation: pulseWarning 2s infinite ease-in-out;
+}
+
+/* Receipt AI Scanner Animations */
+.scanLine {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #C084FC, transparent);
+    filter: drop-shadow(0 0 6px #C084FC);
+    animation: scanAnimation 2.2s infinite ease-in-out;
+    pointer-events: none;
+}
+
+.pulse {
+    animation: pulseAnimation 1.5s infinite ease-in-out;
+}
+
+@keyframes scanAnimation {
+    0% { top: 0%; opacity: 0.8; }
+    50% { top: 100%; opacity: 0.8; }
+    100% { top: 0%; opacity: 0.8; }
+}
+
+@keyframes pulseAnimation {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}

@@ -3,18 +3,17 @@ import { Link } from 'react-router-dom';
 import { Activity, Wallet, Users, ArrowRight, Sun, Cloud, CloudRain } from 'lucide-react';
 import styles from './Dashboard.module.css';
 import { useHealth } from '../contexts/HealthContext';
-// import { useFinance } from '../contexts/FinanceContext';
+import { useFinance } from '../contexts/FinanceContext';
 import { useCommunity } from '../contexts/CommunityContext';
 import { useLocation } from '../contexts/LocationContext';
 
 const Dashboard = () => {
     const { healthState } = useHealth();
-    // const { financeState } = useFinance();
+    const { financeState } = useFinance();
     const { communityState, unit } = useCommunity();
     const { location } = useLocation();
 
-    // Helper for Weather Icon (Duplicated temporarily, or could be in utils)
-    /*
+    // Helper for Weather Icon
     const renderWeatherIcon = (code) => {
         if (!code && code !== 0) return <Sun size={24} color="white" />;
         if (code <= 3) return <Sun size={24} color="white" />;
@@ -28,7 +27,6 @@ const Dashboard = () => {
         if (code >= 80) return 'Rainy';
         return 'Fair';
     };
-    */
 
     return (
         <div className={styles.container}>
@@ -64,7 +62,7 @@ const Dashboard = () => {
                     </div>
                 </Link>
  
-                {/* Finance Summary - Hidden for now
+                {/* Finance Summary */}
                 <Link to="/finance" className={styles.card} style={{ '--accent': 'var(--grad-finance)' }}>
                     <div className={styles.cardHeader}>
                         <div className={styles.iconBox}>
@@ -84,9 +82,8 @@ const Dashboard = () => {
                         <ArrowRight size={16} />
                     </div>
                 </Link>
-                */}
 
-                {/* Community Summary - Hidden for now
+                {/* Community Summary */}
                 <Link to="/community" className={styles.card} style={{ '--accent': 'var(--grad-community)' }}>
                     <div className={styles.cardHeader}>
                         <div className={styles.iconBox}>
@@ -108,7 +105,6 @@ const Dashboard = () => {
                         <ArrowRight size={16} />
                     </div>
                 </Link>
-                */}
             </div>
         </div>
     );

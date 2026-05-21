@@ -482,7 +482,7 @@ const FinanceDashboard = () => {
                         </div>
 
                         {viewMode === 'personal' && selectedMemberId === 'admin' && displayFinance.netWorth > 0 && (
-                            <div style={{ display: 'flex', gap: 10 }}>
+                            <div className={styles.actionBtnGroup}>
                                 <button 
                                     onClick={() => setShowIncomeForm(!showIncomeForm)} 
                                     className={styles.actionBtn}
@@ -507,7 +507,7 @@ const FinanceDashboard = () => {
                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--success)', margin: 0 }}><ArrowUpCircle size={18} /> Record New Earnings</h4>
                                 <button onClick={() => setShowIncomeForm(false)} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}><X size={18} /></button>
                             </div>
-                            <form onSubmit={handleLogIncomeSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: 12, alignItems: 'center' }}>
+                            <form onSubmit={handleLogIncomeSubmit} className={styles.incomeForm}>
                                 <input 
                                     type="number" 
                                     placeholder={`Amount (${currency})`} 
@@ -643,14 +643,14 @@ const FinanceDashboard = () => {
 
                     {/* SETUP MODE (If no data) */}
                     {displayFinance.netWorth === 0 && !isPrivate && viewMode === 'personal' ? (
-                        <div className={styles.card} style={{ gridColumn: 'span 2', padding: 40, textAlign: 'center', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', border: '1px dashed var(--success)' }}>
+                        <div className={`${styles.card} ${styles.setupCard}`}>
                             <div style={{ background: 'var(--success)', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                                 <DollarSign size={24} color="white" />
                             </div>
                             <h3 style={{ fontSize: 20, marginBottom: 8 }}>Set Up Your Finances</h3>
                             <p style={{ maxWidth: 400, margin: '0 auto 24px', opacity: 0.8 }}>Start your journey to financial freedom by entering your current status.</p>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 400, margin: '0 auto' }}>
+                            <div className={styles.formGrid2Col} style={{ maxWidth: 400, margin: '0 auto' }}>
                                 <input
                                     className={styles.moneyInput}
                                     placeholder={`Total Net Worth (${currency})`}
@@ -679,7 +679,7 @@ const FinanceDashboard = () => {
                             {/* Summary cards and leaderboard */}
                             <div className={styles.overviewGrid}>
                                 {viewMode === 'personal' && familyState && familyState.role === 'admin' && (
-                                    <div style={{ gridColumn: 'span 2', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+                                    <div className={styles.memberSelectWrapper}>
                                         <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>View Member:</span>
                                         <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 4, display: 'flex', gap: 4 }}>
                                             <button onClick={() => setSelectedMemberId('admin')} style={{ background: selectedMemberId === 'admin' ? 'var(--accent)' : 'transparent', color: selectedMemberId === 'admin' ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer' }}>Me</button>
@@ -701,19 +701,7 @@ const FinanceDashboard = () => {
                                 )}
 
                                 {isPrivate ? (
-                                    <div style={{
-                                        gridColumn: 'span 2',
-                                        padding: 60,
-                                        textAlign: 'center',
-                                        background: 'rgba(0,0,0,0.3)',
-                                        borderRadius: 16,
-                                        border: '1px solid var(--glass-border)',
-                                        backdropFilter: 'blur(10px)',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
+                                    <div className={styles.privateCard}>
                                         <Shield size={48} color="var(--text-secondary)" style={{ marginBottom: 16, opacity: 0.5 }} />
                                         <h3 style={{ fontSize: 18, marginBottom: 8 }}>Financial Data Private</h3>
                                         <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>{familyState.members.find(m => m.id === selectedMemberId)?.name} has chosen not to share this data.</p>
@@ -745,7 +733,7 @@ const FinanceDashboard = () => {
 
                                 {/* SAVINGS LEADERBOARD (Only in Household View) */}
                                 {viewMode === 'household' && leaderboard.length > 0 && (
-                                    <div style={{ gridColumn: 'span 2', background: 'var(--bg-card)', borderRadius: 16, padding: 20, border: '1px solid var(--glass-border)' }}>
+                                    <div className={styles.leaderboardCard}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                                             <div style={{ padding: 6, background: '#10B981', borderRadius: 8 }}><TrendingUp size={18} color="white" /></div>
                                             <h3 style={{ fontSize: 16, fontWeight: 600 }}>Savings Leaderboard</h3>
@@ -767,7 +755,7 @@ const FinanceDashboard = () => {
 
                             {/* Split Visual Layout */}
                             {!isPrivate && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 24, marginBottom: 32, alignItems: 'start' }}>
+                                <div className={styles.splitLayout}>
                                     
                                     {/* Left Column: Charts, AI scanner, bills, and AI advisor */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -833,8 +821,8 @@ const FinanceDashboard = () => {
                                                     <span style={{ fontSize: 13 }}>No expenditures logged this month.</span>
                                                 </div>
                                             ) : (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 20, height: 200 }}>
-                                                    <div style={{ width: '45%', height: '100%' }}>
+                                                <div className={styles.donutPreview}>
+                                                    <div className={styles.donutChartContainer}>
                                                         <ResponsiveContainer width="100%" height="100%">
                                                             <PieChart>
                                                                 <Pie 
@@ -853,7 +841,7 @@ const FinanceDashboard = () => {
                                                         </ResponsiveContainer>
                                                     </div>
                                                     
-                                                    <div style={{ width: '55%', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 180, overflowY: 'auto', paddingRight: 6 }}>
+                                                    <div className={styles.donutLegendContainer}>
                                                         {spendingChartData.map(item => (
                                                             <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -885,7 +873,7 @@ const FinanceDashboard = () => {
 
                                                 {showSubForm && (
                                                     <form onSubmit={handleAddSubscription} style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(0,0,0,0.15)', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                                        <div className={styles.formGrid2Col}>
                                                             <input 
                                                                 type="text" placeholder="Bill Name (e.g. Netflix)" required 
                                                                 value={subName} onChange={(e) => setSubName(e.target.value)}
@@ -897,7 +885,7 @@ const FinanceDashboard = () => {
                                                                 className={styles.moneyInput} style={{ fontSize: 12.5, padding: 8, height: 'auto' }}
                                                             />
                                                         </div>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 8 }}>
+                                                        <div className={styles.formGrid2Col}>
                                                             <input 
                                                                 type="date" required 
                                                                 value={subDueDate} onChange={(e) => setSubDueDate(e.target.value)}
@@ -1445,7 +1433,7 @@ const EnvelopeCard = ({ env, currency, isAdminView, onAdjustLimit, onDeleteEnvel
 
                     {isGoalMode ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr', gap: 8 }}>
+                            <div className={styles.goalInputGroup}>
                                 <input
                                     type="number" placeholder="Target Savings"
                                     className={styles.moneyInput} style={{ fontSize: 12, padding: 6, height: 'auto' }}
@@ -1499,37 +1487,37 @@ const EnvelopeCard = ({ env, currency, isAdminView, onAdjustLimit, onDeleteEnvel
             {/* Interaction Area */}
             <div style={{ marginTop: 12, minHeight: 30, display: 'flex', justifycontent: 'flex-end' }}>
                 {isSpending ? (
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', width: '100%', justifycontent: 'flex-end' }}>
+                    <div className={styles.logExpenseForm}>
                         <input
                             autoFocus
                             type="text"
                             placeholder="Merchant / Purpose"
-                            className={styles.moneyInput}
-                            style={{ width: 140, height: 28, fontSize: 12, padding: '0 8px' }}
+                            className={`${styles.moneyInput} ${styles.logExpenseDesc}`}
                             value={spendDescription}
                             onChange={(e) => setSpendDescription(e.target.value)}
                         />
                         <input
                             type="number"
                             placeholder="Amount"
-                            className={styles.moneyInput}
-                            style={{ width: 70, height: 28, fontSize: 12, padding: '0 8px' }}
+                            className={`${styles.moneyInput} ${styles.logExpenseAmount}`}
                             value={spendAmount}
                             onChange={(e) => setSpendAmount(e.target.value)}
                         />
-                        <button
-                            onClick={handleSpend}
-                            style={{ background: 'var(--success)', border: 'none', borderRadius: 4, padding: 6, cursor: 'pointer', display: 'flex' }}
-                            title="Confirm Expense"
-                        >
-                            <Check size={14} color="white" />
-                        </button>
-                        <button
-                            onClick={() => { setIsSpending(false); setSpendAmount(''); setSpendDescription(''); }}
-                            style={{ background: 'transparent', border: '1px solid #444', borderRadius: 4, padding: '4px 8px', cursor: 'pointer', color: '#888', display: 'flex', fontSize: 11 }}
-                        >
-                            Cancel
-                        </button>
+                        <div className={styles.logExpenseActions}>
+                            <button
+                                onClick={handleSpend}
+                                className={styles.logExpenseConfirmBtn}
+                                title="Confirm Expense"
+                            >
+                                <Check size={14} color="white" />
+                            </button>
+                            <button
+                                onClick={() => { setIsSpending(false); setSpendAmount(''); setSpendDescription(''); }}
+                                className={styles.logExpenseCancelBtn}
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     !isAdminView && (

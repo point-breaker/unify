@@ -97,6 +97,23 @@
     margin-bottom: var(--space-xl);
 }
 
+.memberSelectWrapper {
+    grid-column: span 2;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.leaderboardCard {
+    grid-column: span 2;
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid var(--glass-border);
+}
+
 .balanceCard,
 .spendingCard {
     background: var(--bg-card);
@@ -480,4 +497,263 @@
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.08); opacity: 1; }
     100% { transform: scale(1); opacity: 0.8; }
+}
+
+/* Mobile Optimization Elements */
+.splitLayout {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 24px;
+    margin-bottom: 32px;
+    align-items: start;
+}
+
+.goalInputGroup {
+    display: grid;
+    grid-template-columns: 1.2fr 1.5fr;
+    gap: 8px;
+}
+
+.logExpenseForm {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+    justify-content: flex-end;
+}
+
+.logExpenseDesc {
+    width: 140px;
+    height: 28px;
+    font-size: 12px;
+    padding: 0 8px;
+}
+
+.logExpenseAmount {
+    width: 70px;
+    height: 28px;
+    font-size: 12px;
+    padding: 0 8px;
+}
+
+.logExpenseActions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.logExpenseConfirmBtn {
+    background: var(--success);
+    border: none;
+    border-radius: 4px;
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+}
+
+.logExpenseCancelBtn {
+    background: transparent;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    color: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    height: 28px;
+}
+
+.formGrid2Col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.incomeForm {
+    display: grid;
+    grid-template-columns: 1fr 2fr auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.donutPreview {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: 200px;
+}
+
+.donutChartContainer {
+    width: 45%;
+    height: 100%;
+}
+
+.donutLegendContainer {
+    width: 55%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.actionBtnGroup {
+    display: flex;
+    gap: 10px;
+}
+
+.privateCard {
+    grid-column: span 2;
+    padding: 60px;
+    text-align: center;
+    background: rgba(0,0,0,0.3);
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.setupCard {
+    grid-column: span 2;
+    padding: 40px;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 1px dashed var(--success);
+}
+
+/* Responsive Media Queries (Mobile Breakpoint <= 767px) */
+@media (max-width: 767px) {
+    .header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+    }
+    
+    .tabGroup {
+        width: 100%;
+        display: flex;
+    }
+    
+    .tabBtn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .toggleContainer {
+        width: 100% !important;
+        display: flex;
+    }
+    
+    .toggleBtn,
+    .activeToggle {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .actionBtnGroup {
+        width: 100%;
+    }
+    
+    .actionBtnGroup button {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .splitLayout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .splitPreview {
+        flex-direction: column;
+        gap: 24px;
+        align-items: center;
+    }
+    
+    .splitLegend {
+        width: 100%;
+    }
+    
+    .envelopeGrid {
+        grid-template-columns: 1fr;
+    }
+    
+    .goalInputGroup {
+        grid-template-columns: 1fr;
+    }
+    
+    .logExpenseForm {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .logExpenseDesc,
+    .logExpenseAmount {
+        width: 100% !important;
+        height: 36px;
+        font-size: 14px;
+    }
+    
+    .logExpenseActions {
+        width: 100%;
+        gap: 8px;
+    }
+    
+    .logExpenseConfirmBtn,
+    .logExpenseCancelBtn {
+        flex: 1;
+        height: 36px;
+        font-size: 13px;
+        border-radius: 6px;
+    }
+    
+    .formGrid2Col {
+        grid-template-columns: 1fr;
+    }
+    
+    .incomeForm {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .donutPreview {
+        flex-direction: column;
+        height: auto;
+        gap: 16px;
+        align-items: center;
+    }
+    
+    .donutChartContainer {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .donutLegendContainer {
+        width: 100%;
+        max-height: none;
+        overflow-y: visible;
+        padding-right: 0;
+    }
+    
+    .privateCard,
+    .setupCard {
+        grid-column: span 1 !important;
+        padding: 24px 16px;
+    }
+    
+    .memberSelectWrapper,
+    .leaderboardCard {
+        grid-column: span 1 !important;
+        padding: 16px;
+    }
 }

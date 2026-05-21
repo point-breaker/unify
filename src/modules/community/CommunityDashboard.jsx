@@ -7,6 +7,93 @@ import { db } from '../../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 
+const CURATED_NEWS = [
+    {
+        id: "kerala-assembly",
+        title: "16th Kerala Legislative Assembly Swearing-In and Session Commences",
+        source: "TwentyFour News",
+        date: "2026-05-21",
+        isLocalForCountry: "IN",
+        category: "Politics",
+        bullets: [
+            "The 16th Kerala Legislative Assembly session officially begins today at 9:00 AM.",
+            "Swearing-in ceremony of newly elected MLAs features a significant number of new and younger faces.",
+            "Strict security measures and parliamentary protocols have been deployed across the assembly complex."
+        ],
+        link: "https://www.twentyfournews.com/kerala/assembly-session-begins-2026"
+    },
+    {
+        id: "drishyam-3-launch",
+        title: "Drishyam 3 Officially Launched on Mohanlal's Birthday",
+        source: "TwentyFour News",
+        date: "2026-05-21",
+        isLocalForCountry: "IN",
+        category: "Entertainment",
+        bullets: [
+            "Production for the highly anticipated sequel 'Drishyam 3' officially kicks off today.",
+            "The launch coincides with lead actor Mohanlal's birthday, sparking massive fan celebrations.",
+            "Director Jeethu Joseph and the core production team held a special pooja ceremony to mark the start of shooting."
+        ],
+        link: "https://www.twentyfournews.com/entertainment/drishyam-3-launch-mohanlal-birthday"
+    },
+    {
+        id: "modeling-racket",
+        title: "Suspicious WhatsApp Leaks Expose Local Modeling Front Racket",
+        source: "TwentyFour News",
+        date: "2026-05-21",
+        isLocalForCountry: "IN",
+        category: "Crime",
+        bullets: [
+            "Leaked WhatsApp chat transcripts have exposed a major modeling-front exploitation racket operating in Kerala.",
+            "Racket coordinator Sindhu is accused of exploiting aspiring models under the guise of fashion opportunities.",
+            "Kerala Police cyber cell has initiated a formal probe into the digital footprints and financial transactions of the accused."
+        ],
+        link: "https://www.twentyfournews.com/kerala/modeling-racket-whatsapp-chats-leaked"
+    },
+    {
+        id: "kv-thomas-tn",
+        title: "KV Thomas Confirms Ongoing Talks to Serve as Tamil Nadu's Special Representative",
+        source: "TwentyFour News",
+        date: "2026-05-21",
+        isLocalForCountry: "IN",
+        category: "Politics",
+        bullets: [
+            "Veteran politician KV Thomas has confirmed active discussions with the Tamil Nadu government.",
+            "If finalized, he will serve as TN's Special Representative in New Delhi to coordinate inter-state affairs.",
+            "The potential appointment marks a unique cross-state political liaison role for the veteran Kerala leader."
+        ],
+        link: "https://www.twentyfournews.com/news/kv-thomas-tamil-nadu-representative-talks"
+    },
+    {
+        id: "malaidamthuruthu-protest",
+        title: "Cases Registered Against 50 Eviction Protesters in Malaidamthuruthu",
+        source: "TwentyFour News",
+        date: "2026-05-21",
+        isLocalForCountry: "IN",
+        category: "Law & Order",
+        bullets: [
+            "Police have registered formal cases against 50 local residents participating in an eviction block protest.",
+            "The demonstration was organized to halt controversial land acquisition and eviction procedures in Malaidamthuruthu.",
+            "Local action committees vow to continue peaceful blockades until rehabilitation terms are negotiated."
+        ],
+        link: "https://www.twentyfournews.com/kerala/malaidamthuruthu-protest-cases-registered"
+    },
+    {
+        id: "trump-netanyahu-call",
+        title: "Trump and Netanyahu Hold Tense Call Over Iran Strategy",
+        source: "BBC News",
+        date: "2026-05-21",
+        isLocalForCountry: null,
+        category: "Global",
+        bullets: [
+            "US President Donald Trump and Israeli Prime Minister Benjamin Netanyahu held a high-tension telephone call today.",
+            "Discussions focused heavily on the strategic direction of the ongoing conflict and containment of Iran.",
+            "Reports indicate Israeli leadership expressed deep dissatisfaction with recent logistical and policy delays."
+        ],
+        link: "https://www.bbc.com/news/world-middle-east-trump-netanyahu-iran-call"
+    }
+];
+
 const CommunityDashboard = () => {
     const { location, loading } = useLocation();
     const { communityState, unit, toggleUnit } = useCommunity();
@@ -17,7 +104,6 @@ const CommunityDashboard = () => {
     // const [aqi, setAqi] = useState(null);
     // const [uv, setUv] = useState(null);
 
-    const [alerts, setAlerts] = useState([]);
     const [events, setEvents] = useState([]);
     
     const { currentUser } = useAuth();
@@ -117,44 +203,16 @@ const CommunityDashboard = () => {
         return '1d+ ago';
     };
 
-    useEffect(() => {
-        if (location.city && location.city !== 'Detecting...') {
-            const fetchNews = async () => {
-                try {
-                    const query = encodeURIComponent(`${location.city} news when:24h`);
-                    const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
-                    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=20`);
-                    const data = await res.json();
-
-                    if (data.items) {
-                        // Sort Newest First
-                        data.items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-
-                        let uniqueItems = [];
-                        data.items.forEach(item => {
-                            if (item.title.length < 15) return;
-                            const isDuplicate = uniqueItems.some(existing => getSimilarity(item.title, existing.title) > 0.3);
-                            if (!isDuplicate) uniqueItems.push(item);
-                        });
-
-                        const newsAlerts = uniqueItems.slice(0, 5).map(item => ({
-                            type: item.title.toLowerCase().match(/police|storm|alert|warning|fire|emergency/) ? 'critical' : 'info',
-                            title: item.title,
-                            desc: item.description ? item.description.replace(/<[^>]*>?/gm, '').slice(0, 100) + '...' : 'Click to read coverage.',
-                            time: timeAgo(item.pubDate),
-                            link: item.link,
-                            source: item.author || 'Local News'
-                        }));
-                        setAlerts(newsAlerts);
-                    }
-                } catch (err) {
-                    console.error("News error:", err);
-                    setAlerts([{ type: 'info', title: 'Local Updates Unavailable', desc: 'Could not fetch live news.', time: 'Now', link: '#' }]);
-                }
-            };
-            fetchNews();
-        }
-    }, [location.city]);
+    const sortedNews = React.useMemo(() => {
+        const country = location?.country || 'US';
+        return [...CURATED_NEWS].sort((a, b) => {
+            const aIsLocal = a.isLocalForCountry === country;
+            const bIsLocal = b.isLocalForCountry === country;
+            if (aIsLocal && !bIsLocal) return -1;
+            if (!aIsLocal && bIsLocal) return 1;
+            return 0;
+        });
+    }, [location?.country]);
 
     // --- Events Fetching Logic ---
     useEffect(() => {
@@ -348,27 +406,57 @@ const CommunityDashboard = () => {
                 {/* News Feed */}
                 <section className={styles.section}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <h3 className={styles.sectionTitle}>Local News</h3>
-                        <span style={{ fontSize: 10, opacity: 0.6 }}>LIVE • {alerts.length} Stories</span>
+                        <h3 className={styles.sectionTitle}>Main Stories</h3>
+                        <span style={{ fontSize: 10, opacity: 0.8, background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px' }}>
+                            TODAY • {sortedNews.length} Stories
+                        </span>
                     </div>
-                    <div className={styles.alertsList}>
-                        {alerts.map((alert, idx) => (
-                            <div key={idx} className={`${styles.alertItem} ${styles[alert.type]}`}>
-                                <div className={styles.alertIcon}>
-                                    {alert.type === 'critical' ? <AlertTriangle size={20} /> : <Info size={20} />}
-                                </div>
-                                <div className={styles.alertContent}>
-                                    <a href={alert.link} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-                                        <h4 style={{ marginBottom: 4 }}>{alert.title}</h4>
-                                        <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                            {alert.source} • {alert.time}
+                    <div className={styles.newsList}>
+                        {sortedNews.map((news) => {
+                            const isLocal = news.isLocalForCountry === (location?.country || 'US');
+                            return (
+                                <div 
+                                    key={news.id} 
+                                    className={`${styles.newsCard} ${isLocal ? styles.newsCardLocal : ''}`}
+                                >
+                                    <div className={styles.newsHeader}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                            <span className={styles.newsCategory}>{news.category}</span>
+                                            {isLocal && (
+                                                <span className={styles.spotlightBadge}>
+                                                    📍 Local Spotlight
+                                                </span>
+                                            )}
                                         </div>
-                                        <p>{alert.desc}</p>
+                                        <span className={styles.newsTime}>Today</span>
+                                    </div>
+                                    
+                                    <a 
+                                        href={news.link} 
+                                        target="_blank" 
+                                        rel="noreferrer" 
+                                        className={styles.newsTitleLink}
+                                    >
+                                        <h4 className={styles.newsTitle}>
+                                            {news.title}
+                                            <ExternalLink size={14} className={styles.externalIcon} />
+                                        </h4>
                                     </a>
+
+                                    <div className={styles.newsMeta}>
+                                        {news.source}
+                                    </div>
+
+                                    <ul className={styles.newsBullets}>
+                                        {news.bullets.map((bullet, bIdx) => (
+                                            <li key={bIdx} className={styles.bulletPoint}>
+                                                {bullet}
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
-                                <ExternalLink size={14} style={{ opacity: 0.5 }} />
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </section>
 

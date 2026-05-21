@@ -179,6 +179,7 @@ const CommunityDashboard = () => {
     // const [uv, setUv] = useState(null);
 
     const [customEvents, setCustomEvents] = useState([]);
+    const [showCommunityImpact, setShowCommunityImpact] = useState(false);
     const [rsvpEvents, setRsvpEvents] = useState([]);
     const [reminderEvents, setReminderEvents] = useState([]);
     const [dismissedReminders, setDismissedReminders] = useState([]);
@@ -703,59 +704,61 @@ const CommunityDashboard = () => {
 
             <div className={styles.grid}>
                 {/* Impact Tracker */}
-                <div className={styles.card} style={{ gridColumn: 'span 3', background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', color: 'white', padding: '24px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(124, 58, 237, 0.3)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-                        <div>
-                            <h3 style={{ fontSize: 20, marginBottom: 4, fontWeight: '800' }}>Your Community Impact</h3>
-                            <p style={{ opacity: 0.8, fontSize: 13 }}>Persistent ecosystem activity synced with Firestore</p>
+                {showCommunityImpact && (
+                    <div className={styles.card} style={{ gridColumn: 'span 3', background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', color: 'white', padding: '24px', borderRadius: '24px', boxShadow: '0 10px 30px rgba(124, 58, 237, 0.3)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                            <div>
+                                <h3 style={{ fontSize: 20, marginBottom: 4, fontWeight: '800' }}>Your Community Impact</h3>
+                                <p style={{ opacity: 0.8, fontSize: 13 }}>Persistent ecosystem activity synced with Firestore</p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: 28, fontWeight: 800 }}>Level {communityStats.level}</div>
+                                <div style={{ fontSize: 12, opacity: 0.8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{communityStats.title}</div>
+                            </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 28, fontWeight: 800 }}>Level {communityStats.level}</div>
-                            <div style={{ fontSize: 12, opacity: 0.8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{communityStats.title}</div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 20 }}>
+                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: 14, borderRadius: 16, textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ fontSize: 22, fontWeight: 800 }}>{communityStats.eventsJoined}</div>
+                                <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>Events Joined</div>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: 14, borderRadius: 16, textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ fontSize: 22, fontWeight: 800 }}>{communityStats.hoursVolunteered}h</div>
+                                <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>Volunteered</div>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: 14, borderRadius: 16, textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div style={{ fontSize: 22, fontWeight: 800 }}>${communityStats.donatedAmount}</div>
+                                <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>Donated</div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 20 }}>
-                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: 14, borderRadius: 16, textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ fontSize: 22, fontWeight: 800 }}>{communityStats.eventsJoined}</div>
-                            <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>Events Joined</div>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: 14, borderRadius: 16, textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ fontSize: 22, fontWeight: 800 }}>{communityStats.hoursVolunteered}h</div>
-                            <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>Volunteered</div>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: 14, borderRadius: 16, textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <div style={{ fontSize: 22, fontWeight: 800 }}>${communityStats.donatedAmount}</div>
-                            <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>Donated</div>
-                        </div>
-                    </div>
 
-                    {/* Log actions block */}
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
-                        <button 
-                            onClick={() => updateCommunityStat('hoursVolunteered', 2)}
-                            style={{
-                                flex: 1, background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
-                                padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
-                                fontWeight: '700', fontSize: '12px', transition: 'all 0.2s',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                            }}
-                        >
-                            🕒 Log +2 Hours
-                        </button>
-                        <button 
-                            onClick={() => updateCommunityStat('donatedAmount', 25)}
-                            style={{
-                                flex: 1, background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
-                                padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
-                                fontWeight: '700', fontSize: '12px', transition: 'all 0.2s',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                            }}
-                        >
-                            💰 Log +$25 Donation
-                        </button>
+                        {/* Log actions block */}
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+                            <button 
+                                onClick={() => updateCommunityStat('hoursVolunteered', 2)}
+                                style={{
+                                    flex: 1, background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+                                    padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
+                                    fontWeight: '700', fontSize: '12px', transition: 'all 0.2s',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                                }}
+                            >
+                                🕒 Log +2 Hours
+                            </button>
+                            <button 
+                                onClick={() => updateCommunityStat('donatedAmount', 25)}
+                                style={{
+                                    flex: 1, background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+                                    padding: '10px 14px', borderRadius: '12px', cursor: 'pointer',
+                                    fontWeight: '700', fontSize: '12px', transition: 'all 0.2s',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                                }}
+                            >
+                                💰 Log +$25 Donation
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* News Feed */}
                 <section className={styles.section}>

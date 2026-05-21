@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CloudRain, Wind, MapPin, AlertTriangle, Info, Calendar, Users, Sun, Cloud, Thermometer, Droplets, Activity, ToggleLeft, ToggleRight, ExternalLink } from 'lucide-react';
+import { CloudRain, Wind, MapPin, AlertTriangle, Info, Calendar, Users, Sun, Cloud, Thermometer, Droplets, Activity, ToggleLeft, ToggleRight, ExternalLink, Plus, Trash2, Clock, User, X } from 'lucide-react';
 import styles from './Community.module.css';
 import { useLocation } from '../../contexts/LocationContext';
 import { useCommunity } from '../../contexts/CommunityContext';
@@ -94,6 +94,80 @@ const CURATED_NEWS = [
     }
 ];
 
+const CURATED_EVENTS = [
+    {
+        id: "kerala-it-fest",
+        title: "Kerala IT Fest 2026 & Startup Expo",
+        newspaperSource: "Mathrubhumi",
+        date: "May 25, 2026",
+        location: "Infopark Kochi, Kerala",
+        isLocalForCountry: "IN",
+        link: "https://www.mathrubhumi.com/technology/kerala-it-fest-2026"
+    },
+    {
+        id: "kochi-biennale-showcase",
+        title: "Biennale Contemporary Art Showcase",
+        newspaperSource: "Malayala Manorama",
+        date: "May 28, 2026",
+        location: "Fort Kochi, Kerala",
+        isLocalForCountry: "IN",
+        link: "https://www.manoramaonline.com/art/biennale-showcase-kochi-2026"
+    },
+    {
+        id: "monsoon-agri-expo",
+        title: "Kerala Monsoon Agri & Organic Produce Fair",
+        newspaperSource: "Kerala Kaumudi",
+        date: "June 2, 2026",
+        location: "Trivandrum Exhibition Grounds",
+        isLocalForCountry: "IN",
+        link: "https://www.keralakaumudi.com/news/monsoon-agri-expo-trivandrum"
+    },
+    {
+        id: "un-climate-summit",
+        title: "Global Climate Action Summit 2026",
+        newspaperSource: "The Guardian",
+        date: "June 5, 2026",
+        location: "Geneva, Switzerland (Hybrid)",
+        isLocalForCountry: null,
+        link: "https://www.theguardian.com/environment/un-climate-summit-geneva-2026"
+    },
+    {
+        id: "vanguard-tech-ai-summit",
+        title: "Vanguard Tech & Next-Gen AI Conference",
+        newspaperSource: "The New York Times",
+        date: "May 30, 2026",
+        location: "San Francisco, CA / Online",
+        isLocalForCountry: null,
+        link: "https://www.nytimes.com/technology/vanguard-ai-summit-2026"
+    }
+];
+
+const getEventDateParts = (dateStr) => {
+    if (!dateStr) return { month: 'Date', day: '?' };
+    
+    if (dateStr.includes('-')) {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            // Append T00:00:00 to treat as local date, preventing timezone offset bugs
+            const dateObj = new Date(dateStr + 'T00:00:00');
+            if (!isNaN(dateObj.getTime())) {
+                const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
+                const day = dateObj.toLocaleDateString('en-US', { day: 'numeric' });
+                return { month, day };
+            }
+        }
+    }
+    
+    const spaceSplit = dateStr.split(' ');
+    if (spaceSplit.length >= 2) {
+        const month = spaceSplit[0];
+        const dayObj = spaceSplit[1].replace(',', '');
+        return { month, day: dayObj };
+    }
+    
+    return { month: 'Date', day: '?' };
+};
+
 const CommunityDashboard = () => {
     const { location, loading } = useLocation();
     const { communityState, unit, toggleUnit } = useCommunity();
@@ -104,7 +178,16 @@ const CommunityDashboard = () => {
     // const [aqi, setAqi] = useState(null);
     // const [uv, setUv] = useState(null);
 
-    const [events, setEvents] = useState([]);
+    const [customEvents, setCustomEvents] = useState([]);
+    const [rsvpEvents, setRsvpEvents] = useState([]);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [newEvent, setNewEvent] = useState({
+        title: '',
+        date: '',
+        time: '',
+        location: '',
+        type: 'event'
+    });
     
     const { currentUser } = useAuth();
     const [communityStats, setCommunityStats] = useState({
@@ -115,7 +198,7 @@ const CommunityDashboard = () => {
         title: "Local Helper"
     });
 
-    // Fetch and sync user community statistics from Firestore
+    // Fetch and sync user community statistics and custom events/reminders from Firestore
     useEffect(() => {
         if (!currentUser) return;
         
@@ -138,6 +221,12 @@ const CommunityDashboard = () => {
                                 title: "Local Helper"
                             }
                         }, { merge: true });
+                    }
+                    if (data.customEvents) {
+                        setCustomEvents(data.customEvents);
+                    }
+                    if (data.rsvpEvents) {
+                        setRsvpEvents(data.rsvpEvents);
                     }
                 }
             } catch (err) {
@@ -214,46 +303,100 @@ const CommunityDashboard = () => {
         });
     }, [location?.country]);
 
-    // --- Events Fetching Logic ---
-    useEffect(() => {
-        if (location.city && location.city !== 'Detecting...') {
-            const fetchEvents = async () => {
-                try {
-                    // Targeted query for events/things to do
-                    const query = encodeURIComponent(`${location.city} upcoming events festival concert community`);
-                    // 'when:7d' ensures we only get recent announcements, likely for upcoming events
-                    const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
-                    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`);
-                    const data = await res.json();
+    const sortedEvents = React.useMemo(() => {
+        const country = location?.country || 'US';
+        
+        // Prioritize and sort curated newspaper events
+        const sortedCurated = [...CURATED_EVENTS].sort((a, b) => {
+            const aIsLocal = a.isLocalForCountry === country;
+            const bIsLocal = b.isLocalForCountry === country;
+            if (aIsLocal && !bIsLocal) return -1;
+            if (!aIsLocal && bIsLocal) return 1;
+            return 0;
+        });
 
-                    if (data.items) {
-                        data.items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-                        let uniqueEvents = [];
+        // Custom user events
+        const mappedCustom = customEvents.map(evt => ({
+            ...evt,
+            isCustom: true,
+            newspaperSource: null
+        }));
 
-                        data.items.forEach(item => {
-                            // Filter out generic news that might leak in
-                            if (!item.title.toLowerCase().match(/event|fest|market|concert|show|meet|drive|fair|expo|run|walk|club/)) return;
+        // Merge user custom events first, then the sorted newspaper-curated ones
+        return [...mappedCustom, ...sortedCurated];
+    }, [customEvents, location?.country]);
 
-                            const isDuplicate = uniqueEvents.some(existing => getSimilarity(item.title, existing.title) > 0.3);
-                            if (!isDuplicate) uniqueEvents.push(item);
-                        });
+    const handleAddEvent = async (e) => {
+        e.preventDefault();
+        if (!currentUser || !newEvent.title || !newEvent.date) return;
 
-                        const realEvents = uniqueEvents.slice(0, 4).map(item => ({
-                            title: item.title,
-                            date: new Date(item.pubDate).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
-                            time: 'See details', // RSS doesn't give event time
-                            location: item.source || location.city, // Use source as proxy for venue if specific location missing
-                            link: item.link
-                        }));
-                        setEvents(realEvents);
-                    }
-                } catch (err) {
-                    console.error("Event fetch failed:", err);
-                }
-            };
-            fetchEvents();
+        const eventObj = {
+            id: Date.now().toString(),
+            title: newEvent.title,
+            date: newEvent.date,
+            time: newEvent.time || 'All Day',
+            location: newEvent.location || 'Local',
+            type: newEvent.type, // 'event' or 'reminder'
+            rsvp: newEvent.type === 'event'
+        };
+
+        const updatedEvents = [...customEvents, eventObj];
+        setCustomEvents(updatedEvents);
+
+        try {
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            await setDoc(userDocRef, { customEvents: updatedEvents }, { merge: true });
+
+            if (eventObj.type === 'event') {
+                await updateCommunityStat('eventsJoined', 1);
+            }
+
+            setNewEvent({ title: '', date: '', time: '', location: '', type: 'event' });
+            setIsFormOpen(false);
+        } catch (err) {
+            console.error("Failed to add custom event:", err);
         }
-    }, [location.city]);
+    };
+
+    const handleDeleteEvent = async (eventId, eventType) => {
+        if (!currentUser) return;
+        const updatedEvents = customEvents.filter(evt => evt.id !== eventId);
+        setCustomEvents(updatedEvents);
+
+        try {
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            await setDoc(userDocRef, { customEvents: updatedEvents }, { merge: true });
+
+            if (eventType === 'event') {
+                await updateCommunityStat('eventsJoined', -1);
+            }
+        } catch (err) {
+            console.error("Failed to delete custom event:", err);
+        }
+    };
+
+    const handleToggleRsvp = async (eventId) => {
+        if (!currentUser) return;
+
+        const isRsvpd = rsvpEvents.includes(eventId);
+        let updatedRsvps;
+        if (isRsvpd) {
+            updatedRsvps = rsvpEvents.filter(id => id !== eventId);
+            await updateCommunityStat('eventsJoined', -1);
+        } else {
+            updatedRsvps = [...rsvpEvents, eventId];
+            await updateCommunityStat('eventsJoined', 1);
+        }
+
+        setRsvpEvents(updatedRsvps);
+
+        try {
+            const userDocRef = doc(db, 'users', currentUser.uid);
+            await setDoc(userDocRef, { rsvpEvents: updatedRsvps }, { merge: true });
+        } catch (err) {
+            console.error("Failed to update RSVP:", err);
+        }
+    };
 
     // --- Helpers ---
     const getTemp = () => {
@@ -462,46 +605,211 @@ const CommunityDashboard = () => {
 
                 {/* Events Feed */}
                 <section className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Upcoming Events</h3>
-                    <div className={styles.eventsList}>
-                        {events.length > 0 ? events.map((evt, idx) => (
-                            <div key={idx} className={styles.eventItem}>
-                                <div className={styles.dateBox} style={{ background: evt.rsvp ? 'var(--success)' : 'var(--bg-card-hover)' }}>
-                                    <Calendar size={18} color={evt.rsvp ? 'white' : 'var(--text-secondary)'} />
-                                    <span style={{ textAlign: 'center', fontSize: 10, color: evt.rsvp ? 'white' : 'var(--text-secondary)' }}>{evt.date.split(',')[0]}</span>
-                                </div>
-                                <div className={styles.eventDetails}>
-                                    <a href={evt.link} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-                                        <h4 style={{ cursor: 'pointer' }}>{evt.title}</h4>
-                                    </a>
-                                    <div className={styles.meta}>
-                                        <span>{evt.location}</span>
-                                    </div>
-                                </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                        <h3 className={styles.sectionTitle}>Upcoming Events</h3>
+                        <button
+                            onClick={() => setIsFormOpen(!isFormOpen)}
+                            className={styles.addEventTrigger}
+                            title="Add Custom Event or Reminder"
+                        >
+                            {isFormOpen ? <X size={14} /> : <Plus size={14} />}
+                            <span>{isFormOpen ? 'Cancel' : 'Add Item'}</span>
+                        </button>
+                    </div>
+
+                    {/* Interactive Glassmorphic Form */}
+                    {isFormOpen && (
+                        <form onSubmit={handleAddEvent} className={styles.eventForm}>
+                            <h4 className={styles.formTitle}>New Custom {newEvent.type === 'event' ? 'Event' : 'Reminder'}</h4>
+                            
+                            <div className={styles.formTypeToggle}>
                                 <button
-                                    onClick={() => {
-                                        const newEvents = [...events];
-                                        const isGoing = !newEvents[idx].rsvp;
-                                        newEvents[idx].rsvp = isGoing;
-                                        setEvents(newEvents);
-                                        updateCommunityStat('eventsJoined', isGoing ? 1 : -1);
-                                    }}
-                                    className={styles.joinBtn}
-                                    style={{
-                                        background: evt.rsvp ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                                        color: evt.rsvp ? 'var(--success)' : 'var(--text-secondary)',
-                                        border: evt.rsvp ? '1px solid var(--success)' : '1px solid var(--glass-border)',
-                                        width: 'auto',
-                                        padding: '0 12px',
-                                        gap: 6
-                                    }}
+                                    type="button"
+                                    className={`${styles.toggleBtn} ${newEvent.type === 'event' ? styles.toggleActive : ''}`}
+                                    onClick={() => setNewEvent({ ...newEvent, type: 'event' })}
                                 >
-                                    {evt.rsvp ? 'Going' : 'RSVP'}
+                                    <User size={14} />
+                                    <span>Event</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`${styles.toggleBtn} ${newEvent.type === 'reminder' ? styles.toggleActive : ''}`}
+                                    onClick={() => setNewEvent({ ...newEvent, type: 'reminder' })}
+                                >
+                                    <Clock size={14} />
+                                    <span>Reminder</span>
                                 </button>
                             </div>
-                        )) : (
-                            <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                No specific event announcements found this week.
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.formLabel}>Title</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder={newEvent.type === 'event' ? "e.g., Beach Volunteering Cleanup" : "e.g., Call local recycling center"}
+                                    value={newEvent.title}
+                                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                                    className={styles.formInput}
+                                />
+                            </div>
+
+                            <div className={styles.formRow}>
+                                <div className={styles.formGroup} style={{ flex: 1 }}>
+                                    <label className={styles.formLabel}>Date</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={newEvent.date}
+                                        onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                                        className={styles.formInput}
+                                    />
+                                </div>
+                                <div className={styles.formGroup} style={{ flex: 1 }}>
+                                    <label className={styles.formLabel}>Time</label>
+                                    <input
+                                        type="time"
+                                        value={newEvent.time}
+                                        onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                                        className={styles.formInput}
+                                    />
+                                </div>
+                            </div>
+
+                            {newEvent.type === 'event' && (
+                                <div className={styles.formGroup}>
+                                    <label className={styles.formLabel}>Location</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g., Fort Kochi, Kerala"
+                                        value={newEvent.location}
+                                        onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                                        className={styles.formInput}
+                                    />
+                                </div>
+                            )}
+
+                            <button type="submit" className={styles.formSubmitBtn}>
+                                Add {newEvent.type === 'event' ? 'Event' : 'Reminder'}
+                            </button>
+                        </form>
+                    )}
+
+                    <div className={styles.eventsList}>
+                        {sortedEvents.length > 0 ? sortedEvents.map((evt) => {
+                            const isJoined = rsvpEvents.includes(evt.id);
+                            const { month, day } = getEventDateParts(evt.date);
+                            
+                            // Determine style class and colors for the dateBox dynamically
+                            let dateBoxStyle = {};
+                            
+                            if (evt.isCustom) {
+                                if (evt.type === 'reminder') {
+                                    dateBoxStyle = {
+                                        background: 'rgba(245, 158, 11, 0.15)',
+                                        borderColor: 'rgba(245, 158, 11, 0.3)'
+                                    };
+                                } else {
+                                    dateBoxStyle = {
+                                        background: 'rgba(99, 102, 241, 0.15)',
+                                        borderColor: 'rgba(99, 102, 241, 0.3)'
+                                    };
+                                }
+                            } else if (isJoined) {
+                                dateBoxStyle = {
+                                    background: 'rgba(16, 185, 129, 0.15)',
+                                    borderColor: 'rgba(16, 185, 129, 0.3)'
+                                };
+                            }
+
+                            return (
+                                <div key={evt.id} className={`${styles.eventItem} ${evt.isCustom ? styles.eventItemCustom : ''}`}>
+                                    <div className={styles.dateBox} style={dateBoxStyle}>
+                                        <span 
+                                            className={styles.dateMonth}
+                                            style={{
+                                                color: evt.isCustom
+                                                    ? (evt.type === 'reminder' ? '#F59E0B' : '#818CF8')
+                                                    : (isJoined ? '#10B981' : 'var(--text-secondary)')
+                                            }}
+                                        >
+                                            {month}
+                                        </span>
+                                        <span 
+                                            className={styles.dateDay}
+                                            style={{
+                                                color: evt.isCustom
+                                                    ? (evt.type === 'reminder' ? '#F59E0B' : '#818CF8')
+                                                    : (isJoined ? '#10B981' : 'var(--text-primary)')
+                                            }}
+                                        >
+                                            {day}
+                                        </span>
+                                    </div>
+                                    <div className={styles.eventDetails}>
+                                        {evt.isCustom ? (
+                                            <h4>{evt.title}</h4>
+                                        ) : (
+                                            <a href={evt.link} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                                <h4>
+                                                    {evt.title}
+                                                    <ExternalLink size={12} className={styles.eventLinkIcon} style={{ marginLeft: 6, display: 'inline-block', verticalAlign: 'middle', opacity: 0.6 }} />
+                                                </h4>
+                                            </a>
+                                        )}
+                                        <div className={styles.meta}>
+                                            {evt.isCustom ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                    {evt.type === 'event' ? (
+                                                        <span className={`${styles.customBadge} ${styles.badgeEvent}`}>
+                                                            👤 Personal Event
+                                                        </span>
+                                                    ) : (
+                                                        <span className={`${styles.customBadge} ${styles.badgeReminder}`}>
+                                                            ⏰ Reminder
+                                                        </span>
+                                                    )}
+                                                    {evt.time && <span>• {evt.time}</span>}
+                                                    {evt.location && <span>• {evt.location}</span>}
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                    <span className={styles.newspaperBadge}>
+                                                        📰 {evt.newspaperSource}
+                                                    </span>
+                                                    <span>• {evt.location}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {evt.isCustom ? (
+                                        <button
+                                            onClick={() => handleDeleteEvent(evt.id, evt.type)}
+                                            className={styles.deleteBtn}
+                                            title={`Delete Custom ${evt.type}`}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleToggleRsvp(evt.id)}
+                                            className={styles.joinBtn}
+                                            style={{
+                                                background: isJoined ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                                                color: isJoined ? 'var(--success)' : 'var(--text-secondary)',
+                                                border: isJoined ? '1px solid var(--success)' : '1px solid var(--glass-border)',
+                                                width: 'auto',
+                                                padding: '0 12px',
+                                                gap: 6
+                                            }}
+                                        >
+                                            {isJoined ? 'Going' : 'RSVP'}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        }) : (
+                            <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', background: 'var(--bg-card)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)' }}>
+                                No upcoming events scheduled. Click "Add Item" to create one!
                             </div>
                         )}
                     </div>

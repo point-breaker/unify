@@ -6,6 +6,7 @@ import { useCommunity } from '../../contexts/CommunityContext';
 import { db } from '../../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
+import { generateLocalEvents } from './EventGenerator';
 
 const CURATED_NEWS = [
     {
@@ -205,6 +206,11 @@ const CommunityDashboard = () => {
         title: "Local Helper"
     });
 
+    const [newsList, setNewsList] = useState([]);
+    const [eventsList, setEventsList] = useState([]);
+    const [newsLoading, setNewsLoading] = useState(true);
+    const [eventsLoading, setEventsLoading] = useState(true);
+
     // Fetch and sync user community statistics and custom events/reminders from Firestore
     useEffect(() => {
         if (!currentUser) return;
@@ -248,6 +254,54 @@ const CommunityDashboard = () => {
         };
         fetchCommunityStats();
     }, [currentUser]);
+
+    // --- Dynamic Real-Time News & Localized Events Fetching ---
+    useEffect(() => {
+        if (!location || location.city === 'Detecting...') return;
+
+        let active = true;
+
+        const loadDynamicPulse = async () => {
+            setNewsLoading(true);
+            setEventsLoading(true);
+
+            // 1. Fetch real-time geolocated news from Google News RSS proxy
+            try {
+                const res = await fetch(`/api/news?country=${location.country || 'US'}`);
+                if (!res.ok) throw new Error("Failed to load news");
+                const data = await res.json();
+                if (active) {
+                    setNewsList(data);
+                }
+            } catch (err) {
+                console.error("Failed to load real-time news feed:", err);
+                if (active) {
+                    // Seed standard mock fallback if endpoint fails
+                    setNewsList(CURATED_NEWS.map(n => ({ ...n, isLocalForCountry: n.isLocalForCountry === location.country })));
+                }
+            } finally {
+                if (active) setNewsLoading(false);
+            }
+
+            // 2. Fetch and Synthesize localized events using Gemini Flash
+            try {
+                const events = await generateLocalEvents(location.city, location.country);
+                if (active) {
+                    setEventsList(events);
+                }
+            } catch (err) {
+                console.error("Failed to synthesize local events:", err);
+            } finally {
+                if (active) setEventsLoading(false);
+            }
+        };
+
+        loadDynamicPulse();
+
+        return () => {
+            active = false;
+        };
+    }, [location]);
 
     const updateCommunityStat = async (field, incrementBy) => {
         if (!currentUser) return;
@@ -309,20 +363,20 @@ const CommunityDashboard = () => {
 
     const sortedNews = React.useMemo(() => {
         const country = location?.country || 'US';
-        return [...CURATED_NEWS].sort((a, b) => {
+        return [...newsList].sort((a, b) => {
             const aIsLocal = a.isLocalForCountry === country;
             const bIsLocal = b.isLocalForCountry === country;
             if (aIsLocal && !bIsLocal) return -1;
             if (!aIsLocal && bIsLocal) return 1;
             return 0;
         });
-    }, [location?.country]);
+    }, [newsList, location?.country]);
 
     const sortedEvents = React.useMemo(() => {
         const country = location?.country || 'US';
         
         // Prioritize and sort curated newspaper events
-        const sortedCurated = [...CURATED_EVENTS].sort((a, b) => {
+        const sortedCurated = [...eventsList].sort((a, b) => {
             const aIsLocal = a.isLocalForCountry === country;
             const bIsLocal = b.isLocalForCountry === country;
             if (aIsLocal && !bIsLocal) return -1;
@@ -339,7 +393,7 @@ const CommunityDashboard = () => {
 
         // Merge user custom events first, then the sorted newspaper-curated ones
         return [...mappedCustom, ...sortedCurated];
-    }, [customEvents, location?.country]);
+    }, [eventsList, customEvents, location?.country]);
 
     const handleAddEvent = async (e) => {
         e.preventDefault();
@@ -762,7 +816,14 @@ const CommunityDashboard = () => {
                         </span>
                     </div>
                     <div className={styles.newsList}>
-                        {sortedNews.map((news) => {
+                        {newsLoading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', padding: '36px 0', textAlign: 'center', background: 'rgba(255,255,255,0.01)', borderRadius: 12, border: '1px dashed var(--glass-border)' }}>
+                                <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulse-sos 1.5s infinite' }}></span>
+                                    Syncing today's real-time stories for {location?.country || 'US'}...
+                                </div>
+                            </div>
+                        ) : sortedNews.map((news) => {
                             const isLocal = news.isLocalForCountry === (location?.country || 'US');
                             return (
                                 <div 
@@ -778,7 +839,7 @@ const CommunityDashboard = () => {
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={styles.newsTime}>Today</span>
+                                        <span className={styles.newsTime}>{news.date || 'Today'}</span>
                                     </div>
                                     
                                     <a 
@@ -796,14 +857,6 @@ const CommunityDashboard = () => {
                                     <div className={styles.newsMeta}>
                                         {news.source}
                                     </div>
-
-                                    <ul className={styles.newsBullets}>
-                                        {news.bullets.map((bullet, bIdx) => (
-                                            <li key={bIdx} className={styles.bulletPoint}>
-                                                {bullet}
-                                            </li>
-                                        ))}
-                                    </ul>
                                 </div>
                             );
                         })}
@@ -902,7 +955,14 @@ const CommunityDashboard = () => {
                     )}
 
                     <div className={styles.eventsList}>
-                        {sortedEvents.length > 0 ? sortedEvents.map((evt) => {
+                        {eventsLoading ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', padding: '36px 0', textAlign: 'center', background: 'rgba(255,255,255,0.01)', borderRadius: 12, border: '1px dashed var(--glass-border)' }}>
+                                <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#818CF8', display: 'inline-block', animation: 'pulse-sos 1.5s infinite' }}></span>
+                                    Synthesizing local event calendar for {location?.city || 'your city'}...
+                                </div>
+                            </div>
+                        ) : sortedEvents.length > 0 ? sortedEvents.map((evt) => {
                             const isJoined = rsvpEvents.includes(evt.id);
                             const { month, day } = getEventDateParts(evt.date);
                             

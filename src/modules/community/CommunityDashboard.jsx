@@ -169,6 +169,36 @@ const getEventDateParts = (dateStr) => {
     return { month: 'Date', day: '?' };
 };
 
+const getNewsDisplayDate = (dateStr) => {
+    if (!dateStr) return 'Today';
+    const trimmed = dateStr.trim();
+    // If it's already a relative format (e.g. ends in 'ago' or is 'Yesterday' / 'Today' / 'Just now')
+    if (trimmed.endsWith('ago') || trimmed === 'Yesterday' || trimmed === 'Today' || trimmed === 'Just now') {
+        return trimmed;
+    }
+    
+    // Otherwise, parse the date and format as relative time ago
+    try {
+        const pubDate = new Date(trimmed);
+        if (isNaN(pubDate.getTime())) return trimmed;
+        
+        const now = new Date();
+        const diffMs = now.getTime() - pubDate.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 0) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return pubDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+        return trimmed;
+    }
+};
+
 const CommunityDashboard = () => {
     const { location, loading } = useLocation();
     const { communityState, unit, toggleUnit } = useCommunity();
@@ -812,7 +842,7 @@ const CommunityDashboard = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <h3 className={styles.sectionTitle}>Main Stories</h3>
                         <span style={{ fontSize: 10, opacity: 0.8, background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px' }}>
-                            TODAY • {sortedNews.length} Stories
+                            LATEST • {sortedNews.length} Stories
                         </span>
                     </div>
                     <div className={styles.newsList}>
@@ -839,7 +869,7 @@ const CommunityDashboard = () => {
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={styles.newsTime}>{news.date || 'Today'}</span>
+                                        <span className={styles.newsTime}>{getNewsDisplayDate(news.date)}</span>
                                     </div>
                                     
                                     <a 

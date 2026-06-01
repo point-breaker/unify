@@ -64,6 +64,15 @@ function parseRssXml(xmlString) {
             const pubDate = pubDateMatch ? cleanXmlString(pubDateMatch[1]) : new Date().toUTCString();
             const source = sourceMatch ? cleanXmlString(sourceMatch[1]) : 'Google News';
 
+            // Filter out news older than 48 hours to ensure absolute daily freshness
+            const pubDateObj = new Date(pubDate);
+            if (!isNaN(pubDateObj.getTime())) {
+                const diffMs = Date.now() - pubDateObj.getTime();
+                if (diffMs > 172800000) { // 48 hours in milliseconds
+                    continue; // Discard old news
+                }
+            }
+
             // Google News RSS titles append the publisher at the end, e.g. "Headline - Source"
             // We split by " - " and remove the last element to get a clean headline
             const titleParts = rawTitle.split(' - ');
@@ -84,15 +93,32 @@ function parseRssXml(xmlString) {
             else if (lowerTitle.includes('protest') || lowerTitle.includes('assembly') || lowerTitle.includes('elect') || lowerTitle.includes('minister') || lowerTitle.includes('police')) category = 'Politics';
             else category = 'Top Story';
 
-            // Parse pubDate to dynamic time ago tags or relative dates
+            // Parse pubDate to a premium relative time ago format
             let formattedDate = 'Today';
             try {
-                const dateObj = new Date(pubDate);
-                if (!isNaN(dateObj.getTime())) {
-                    formattedDate = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                if (!isNaN(pubDateObj.getTime())) {
+                    const now = new Date();
+                    const diffMs = now.getTime() - pubDateObj.getTime();
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+
+                    if (diffMins < 0) {
+                        formattedDate = 'Just now';
+                    } else if (diffMins < 60) {
+                        formattedDate = `${diffMins}m ago`;
+                    } else if (diffHours < 24) {
+                        formattedDate = `${diffHours}h ago`;
+                    } else if (diffDays === 1) {
+                        formattedDate = 'Yesterday';
+                    } else if (diffDays < 7) {
+                        formattedDate = `${diffDays}d ago`;
+                    } else {
+                        formattedDate = pubDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }
                 }
             } catch {
-                // Keep default
+                formattedDate = 'Today';
             }
 
             items.push({

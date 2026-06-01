@@ -3,6 +3,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAI, GoogleAIBackend } from "firebase/ai";
 
 // TODO: Replace the following with your app's Firebase project configuration
 // You can find this in the Firebase Console -> Project Settings -> General -> "Your apps"
@@ -20,4 +21,8 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+// Initialize and export AI Logic service instance using GoogleAIBackend
+export const ai = getAI(app, { backend: new GoogleAIBackend() });
+
 export default app;
+

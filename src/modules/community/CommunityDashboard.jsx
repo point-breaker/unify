@@ -179,6 +179,7 @@ const CommunityDashboard = () => {
     // const [uv, setUv] = useState(null);
 
     const [customEvents, setCustomEvents] = useState([]);
+    // eslint-disable-next-line no-unused-vars
     const [showCommunityImpact, setShowCommunityImpact] = useState(false);
     const [rsvpEvents, setRsvpEvents] = useState([]);
     const [reminderEvents, setReminderEvents] = useState([]);
@@ -287,6 +288,7 @@ const CommunityDashboard = () => {
 
     // --- News / Alerts Fetching with Deduplication ---
     // Helper: Jaccard Similarity
+    // eslint-disable-next-line no-unused-vars
     const getSimilarity = (str1, str2) => {
         const set1 = new Set(str1.toLowerCase().split(' '));
         const set2 = new Set(str2.toLowerCase().split(' '));
@@ -295,6 +297,7 @@ const CommunityDashboard = () => {
         return intersection.size / union.size;
     };
 
+    // eslint-disable-next-line no-unused-vars
     const timeAgo = (dateStr) => {
         const diff = new Date() - new Date(dateStr);
         const minutes = Math.floor(diff / 60000);
@@ -599,6 +602,7 @@ const CommunityDashboard = () => {
         return () => {
             clearInterval(checkInterval);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [reminderEvents, dismissedReminders, sortedEvents, currentUser]);
 
     // Clean up ringing on unmount

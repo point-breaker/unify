@@ -108,6 +108,7 @@ export const HealthProvider = ({ children }) => {
         });
 
         return () => unsubscribe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser]);
 
     // 1b. Sync from localStorage when not authenticated (Local Fallback Mode)
@@ -134,7 +135,7 @@ export const HealthProvider = ({ children }) => {
     // ─── Auto-clear Transition Buffer is handled declaratively in displaySteps ───
 
     // 2. Function to Update Health (Also writes to Firestore or localStorage using recursive dot-notation update)
-    const updateHealth = async (updates, immediate = false) => {
+    async function updateHealth(updates, immediate = false) {
         setHealthState(prev => {
             const nextState = { ...prev, ...updates };
 
@@ -228,7 +229,7 @@ export const HealthProvider = ({ children }) => {
 
             return nextState;
         });
-    };
+    }
 
     const updateProfile = async (profileUpdates) => {
         setHealthState(prev => {

@@ -10,6 +10,9 @@ import styles from './FinanceRefined.module.css';
 import { useLocation } from '../../contexts/LocationContext';
 import { useFinance } from '../../contexts/FinanceContext';
 import { useFamily } from '../../contexts/FamilyContext';
+import { scanReceiptWithAI } from './ReceiptScanner';
+
+const EMPTY_ARRAY = [];
 
 const FinanceDashboard = () => {
     const { location } = useLocation();
@@ -133,9 +136,9 @@ const FinanceDashboard = () => {
     };
 
     // Use Context State
-    const envelopes = financeState.envelopes || [];
-    const transactions = financeState.transactions || [];
-    const subscriptions = financeState.subscriptions || [];
+    const envelopes = financeState.envelopes || EMPTY_ARRAY;
+    const transactions = financeState.transactions || EMPTY_ARRAY;
+    const subscriptions = financeState.subscriptions || EMPTY_ARRAY;
 
     // --- Family / Admin Logic ---
     const { familyState, getHouseholdStats, getLeaderboard } = useFamily();
@@ -184,7 +187,7 @@ const FinanceDashboard = () => {
     }
 
     const currentEnvelopes = displayFinance.envelopes || envelopes;
-    const currentTransactions = viewMode === 'personal' && selectedMemberId === 'admin' ? transactions : [];
+    const currentTransactions = useMemo(() => viewMode === 'personal' && selectedMemberId === 'admin' ? transactions : [], [viewMode, selectedMemberId, transactions]);
 
     // Smart Income Allocator State and Actions
     const [allocationPreview, setAllocationPreview] = useState([]);
@@ -287,7 +290,7 @@ const FinanceDashboard = () => {
         setShowEnvManager(false);
     };
 
-    // Simulated AI Receipt Scanning Execution
+    // Simulated AI Receipt Scanning Execution (Demo Mode)
     const handleScanReceipt = (receipt) => {
         if (customEnvelopeLock && familyState?.role !== 'admin') {
             alert("Administrative Controls Lock: Spend logs are locked.");
@@ -300,6 +303,46 @@ const FinanceDashboard = () => {
             setIsScanning(false);
             setScanLogModal(receipt);
         }, 2200);
+    };
+
+    // Real AI Receipt Scanning Execution via file uploader
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (customEnvelopeLock && familyState?.role !== 'admin') {
+            alert("Administrative Controls Lock: Spend logs are locked.");
+            return;
+        }
+
+        setIsScanning(true);
+        setScanningReceiptName(file.name);
+
+        try {
+            const envelopeNames = currentEnvelopes.map(env => env.name);
+            const extracted = await scanReceiptWithAI(file, envelopeNames);
+            
+            setScanLogModal({
+                label: extracted.merchant,
+                amount: extracted.amount,
+                envelope: extracted.envelope,
+                desc: extracted.desc
+            });
+        } catch (err) {
+            console.error("AI receipt scan error:", err);
+            alert(`AI Scanner: Service Connection required.\n\n${err.message}\n\nLoading sample receipt as a dynamic fallback.`);
+            // Fallback mock coffee transaction if model or backend has not been provisioned
+            setScanLogModal({
+                label: "Starbucks Coffee (Simulated)",
+                amount: 6.80,
+                envelope: currentEnvelopes[1]?.name || currentEnvelopes[0]?.name || "Wants",
+                desc: "Caramel Macchiato (Scan Fallback)"
+            });
+        } finally {
+            setIsScanning(false);
+            // Reset input so scanning same file name again triggers onChange
+            e.target.value = '';
+        }
     };
 
     const confirmScanTransaction = async () => {
@@ -356,8 +399,9 @@ const FinanceDashboard = () => {
     // Dynamic AI Coach Insight formulation
     const aiTips = useMemo(() => {
         if (isPrivate || currentEnvelopes.length === 0) return [];
-        const day = today.getDate();
-        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        const todayLocal = new Date();
+        const day = todayLocal.getDate();
+        const daysInMonth = new Date(todayLocal.getFullYear(), todayLocal.getMonth() + 1, 0).getDate();
         const monthProgress = day / daysInMonth;
 
         const tips = [];
@@ -410,7 +454,7 @@ const FinanceDashboard = () => {
         }
 
         return tips;
-    }, [currentEnvelopes, displayFinance.budgetLimit, displayFinance.netWorth, currency, isPrivate, subscriptions]);
+    }, [currentEnvelopes, displayFinance.budgetLimit, currency, isPrivate, subscriptions]);
 
     // Donut visualization data preparation
     const spendingChartData = useMemo(() => {
@@ -760,15 +804,40 @@ const FinanceDashboard = () => {
                                     {/* Left Column: Charts, AI scanner, bills, and AI advisor */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                                         
-                                        {/* AI RECEIPT SCANNER CARD SIMULATION */}
+                                        {/* AI RECEIPT SCANNER CARD */}
                                         {viewMode === 'personal' && selectedMemberId === 'admin' && (
                                             <div className={styles.card} style={{ padding: 20, position: 'relative' }}>
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, margin: '0 0 8px 0', color: '#C084FC' }}>
                                                     <Brain size={18} /> Receipt AI OCR Scanner
                                                 </h4>
-                                                <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, margin: '0 0 16px 0' }}>Simulate a camera OCR scanning invoice. Select a sample receipt to run real-time laser scans.</p>
+                                                <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, margin: '0 0 16px 0' }}>Scan your physical receipts in real-time or pick a simulated sample below to analyze spend.</p>
 
-                                                <div style={{ position: 'relative', border: '1px dashed rgba(192, 132, 252, 0.3)', background: 'rgba(0,0,0,0.2)', padding: '24px 16px', borderRadius: 8, textAlign: 'center', marginBottom: 16, overflow: 'hidden' }}>
+                                                {/* Hidden input file field */}
+                                                <input 
+                                                    type="file" 
+                                                    id="receipt-file-input" 
+                                                    accept="image/*,application/pdf" 
+                                                    style={{ display: 'none' }} 
+                                                    onChange={handleFileChange} 
+                                                />
+
+                                                <div 
+                                                    onClick={() => !isScanning && document.getElementById('receipt-file-input').click()}
+                                                    style={{ 
+                                                        position: 'relative', 
+                                                        border: '1px dashed rgba(192, 132, 252, 0.4)', 
+                                                        background: 'rgba(0,0,0,0.2)', 
+                                                        padding: '24px 16px', 
+                                                        borderRadius: 8, 
+                                                        textAlign: 'center', 
+                                                        marginBottom: 16, 
+                                                        overflow: 'hidden',
+                                                        cursor: isScanning ? 'default' : 'pointer',
+                                                        transition: 'all 0.2s',
+                                                    }}
+                                                    onMouseEnter={(e) => { if (!isScanning) e.currentTarget.style.borderColor = '#C084FC'; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(192, 132, 252, 0.4)'; }}
+                                                >
                                                     {isScanning ? (
                                                         <div style={{ padding: '8px 0' }}>
                                                             <div className={styles.scanLine} />
@@ -778,8 +847,9 @@ const FinanceDashboard = () => {
                                                         </div>
                                                     ) : (
                                                         <div>
-                                                            <UploadCloud size={24} style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 8 }} />
-                                                            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>Laser Scanner Offline. Select a sample below to simulate:</div>
+                                                            <UploadCloud size={24} style={{ color: '#C084FC', marginBottom: 8 }} />
+                                                            <div style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Click here to upload receipt image</div>
+                                                            <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 4 }}>Supports JPEGs, PNGs, and PDFs</div>
                                                         </div>
                                                     )}
                                                 </div>

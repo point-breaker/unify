@@ -109,6 +109,7 @@ export default defineConfig({
 
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
             res.end(JSON.stringify(items));
           } catch (e) {
             console.error('[Vite Serverless Dev Proxy] Error fetching news:', e);

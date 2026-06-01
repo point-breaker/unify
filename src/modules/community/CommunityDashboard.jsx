@@ -297,7 +297,9 @@ const CommunityDashboard = () => {
 
             // 1. Fetch real-time geolocated news from Google News RSS proxy
             try {
-                const res = await fetch(`/api/news?country=${location.country || 'US'}`);
+                const res = await fetch(`/api/news?country=${location.country || 'US'}&t=${Date.now()}`, {
+                    cache: 'no-store'
+                });
                 if (!res.ok) throw new Error("Failed to load news");
                 const data = await res.json();
                 if (active) {

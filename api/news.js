@@ -137,6 +137,9 @@ function parseRssXml(xmlString) {
 }
 
 export default async function handler(req, res) {
+    // Disable edge/browser caching completely to ensure fresh daily updates
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+
     // Enable CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');

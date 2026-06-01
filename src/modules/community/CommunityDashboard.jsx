@@ -330,8 +330,14 @@ const CommunityDashboard = () => {
 
         loadDynamicPulse();
 
+        // Automatically refresh news & events in the background every 4 hours if the tab is left open
+        const refreshInterval = setInterval(() => {
+            if (active) loadDynamicPulse();
+        }, 14400000); // 4 hours in milliseconds
+
         return () => {
             active = false;
+            clearInterval(refreshInterval);
         };
     }, [location]);
 

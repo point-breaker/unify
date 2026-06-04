@@ -425,7 +425,7 @@ const FinanceDashboard = () => {
         currentEnvelopes.forEach(env => {
             if (env.isGoal) {
                 // savings goal milestone tracking
-                const savedPercentage = (env.current / env.targetAmount) * 100;
+                const savedPercentage = (env.current / (env.targetAmount || 1)) * 100;
                 if (savedPercentage < 30 && monthProgress > 0.5) {
                     tips.push({
                         type: 'warning',
@@ -784,7 +784,7 @@ const FinanceDashboard = () => {
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
                                             {leaderboard.map((m, idx) => (
-                                                <div key={m.id} style={{ background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 8, display: 'flex', alignItems: 'center', justifycontent: 'space-between' }}>
+                                                <div key={m.id} style={{ background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                         <span style={{ fontWeight: 700, color: idx === 0 ? '#10B981' : '#666' }}>#{idx + 1}</span>
                                                         <span>{m.name}</span>
@@ -886,7 +886,7 @@ const FinanceDashboard = () => {
                                             </h4>
                                             
                                             {spendingChartData.length === 0 ? (
-                                                <div style={{ height: 200, display: 'flex', flexDirection: 'column', justifycontent: 'center', alignItems: 'center', color: 'var(--text-secondary)' }}>
+                                                <div style={{ height: 200, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'var(--text-secondary)' }}>
                                                     <DollarSign size={36} style={{ opacity: 0.3, marginBottom: 8 }} />
                                                     <span style={{ fontSize: 13 }}>No expenditures logged this month.</span>
                                                 </div>
@@ -913,7 +913,7 @@ const FinanceDashboard = () => {
                                                     
                                                     <div className={styles.donutLegendContainer}>
                                                         {spendingChartData.map(item => (
-                                                            <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}>
+                                                            <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                                                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }}></span>
                                                                     <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{item.name}</span>
@@ -929,7 +929,7 @@ const FinanceDashboard = () => {
                                         {/* SMART BILLS & SUBSCRIPTIONS TIMELINE */}
                                         {viewMode === 'personal' && selectedMemberId === 'admin' && (
                                             <div className={styles.card} style={{ padding: 20 }}>
-                                                <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                                     <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, margin: 0 }}>
                                                         <CalendarDays size={18} color="var(--accent)" /> Subscriptions & Bills
                                                     </h4>
@@ -984,7 +984,7 @@ const FinanceDashboard = () => {
                                                             const diffDays = Math.ceil((new Date(sub.nextDueDate) - today) / (1000 * 60 * 60 * 24));
                                                             const isOverdue = diffDays < 0;
                                                             return (
-                                                                <div key={sub.id} style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 8 }}>
+                                                                <div key={sub.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 8 }}>
                                                                     <div>
                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                                             <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{sub.name}</span>
@@ -1025,7 +1025,7 @@ const FinanceDashboard = () => {
                                             background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%)',
                                             border: '1px solid rgba(139, 92, 246, 0.15)'
                                         }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', marginBottom: 16 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                                                 <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, color: '#C084FC', margin: 0 }}>
                                                     <Brain size={18} /> Smart AI Financial Coach
                                                 </h4>
@@ -1058,7 +1058,7 @@ const FinanceDashboard = () => {
                                         {/* HOUSEHOLD ADMIN CONTROL PANEL */}
                                         {viewMode === 'household' && familyState?.role === 'admin' && (
                                             <div className={styles.card} style={{ padding: 20, background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(0, 0, 0, 0.2) 100%)', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                                                <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                                     <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, color: '#EF4444', margin: 0 }}>
                                                         <Shield size={18} /> Administrative Controls Console
                                                     </h4>
@@ -1081,7 +1081,7 @@ const FinanceDashboard = () => {
                                                             />
                                                         </div>
 
-                                                        <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                                             <div>
                                                                 <span style={{ fontSize: 13, fontWeight: 600, color: 'white', display: 'block' }}>Lock Custom Envelopes</span>
                                                                 <span style={{ fontSize: 10.5, color: 'var(--text-secondary)' }}>Disallow non-admin member modifications</span>
@@ -1108,7 +1108,7 @@ const FinanceDashboard = () => {
                                         )}
 
                                         <section className={styles.section} style={{ margin: 0 }}>
-                                            <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                                 <h3 className={styles.sectionTitle} style={{ margin: 0 }}>Cash Envelope Budgets</h3>
                                                 <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{currentEnvelopes.length} Envelopes Active</span>
                                             </div>
@@ -1166,7 +1166,7 @@ const FinanceDashboard = () => {
 
                                     {/* The Ledger Feed */}
                                     <div className={styles.card} style={{ padding: 24, border: '1px solid var(--glass-border)' }}>
-                                        <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                                 <div style={{ padding: 6, background: 'rgba(59, 130, 246, 0.1)', borderRadius: 8 }}><Calendar size={18} color="var(--info)" /></div>
                                                 <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Recent Ledger Transactions</h3>
@@ -1490,7 +1490,7 @@ const EnvelopeCard = ({ env, currency, isAdminView, onAdjustLimit, onDeleteEnvel
             {/* Inline limits & Goal configuration edit */}
             {isEditingSettings && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14, background: 'rgba(0,0,0,0.15)', padding: 12, borderRadius: 8 }}>
-                    <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>Configure Envelope</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Savings Goal:</span>
@@ -1523,7 +1523,7 @@ const EnvelopeCard = ({ env, currency, isAdminView, onAdjustLimit, onDeleteEnvel
                             </button>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', justifycontent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                 <input
                                     type="number"
@@ -1555,7 +1555,7 @@ const EnvelopeCard = ({ env, currency, isAdminView, onAdjustLimit, onDeleteEnvel
             )}
 
             {/* Interaction Area */}
-            <div style={{ marginTop: 12, minHeight: 30, display: 'flex', justifycontent: 'flex-end' }}>
+            <div style={{ marginTop: 12, minHeight: 30, display: 'flex', justifyContent: 'flex-end' }}>
                 {isSpending ? (
                     <div className={styles.logExpenseForm}>
                         <input

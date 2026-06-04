@@ -30,9 +30,9 @@ function fetchUrl(url) {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 UnifyApp'
             }
         }, (res) => {
-            let data = '';
-            res.on('data', (chunk) => { data += chunk; });
-            res.on('end', () => resolve(data));
+            const chunks = [];
+            res.on('data', (chunk) => { chunks.push(chunk); });
+            res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
         }).on('error', (err) => reject(err));
     });
 }
@@ -41,7 +41,7 @@ function fetchUrl(url) {
  * Parses Google News RSS XML using a high-performance regex engine
  */
 function parseRssXml(xmlString) {
-    const items = [];
+    const allItems = [];
     const itemRegex = /<item>([\s\S]*?)<\/item>/g;
     
     const titleRegex = /<title>([\s\S]*?)<\/title>/i;
@@ -50,7 +50,7 @@ function parseRssXml(xmlString) {
     const sourceRegex = /<source[^>]*>([\s\S]*?)<\/source>/i;
 
     let match;
-    while ((match = itemRegex.exec(xmlString)) !== null && items.length < 6) {
+    while ((match = itemRegex.exec(xmlString)) !== null) {
         const itemContent = match[1];
         
         const titleMatch = itemContent.match(titleRegex);
@@ -63,15 +63,6 @@ function parseRssXml(xmlString) {
             const link = cleanXmlString(linkMatch[1]);
             const pubDate = pubDateMatch ? cleanXmlString(pubDateMatch[1]) : new Date().toUTCString();
             const source = sourceMatch ? cleanXmlString(sourceMatch[1]) : 'Google News';
-
-            // Filter out news older than 48 hours to ensure absolute daily freshness
-            const pubDateObj = new Date(pubDate);
-            if (!isNaN(pubDateObj.getTime())) {
-                const diffMs = Date.now() - pubDateObj.getTime();
-                if (diffMs > 172800000) { // 48 hours in milliseconds
-                    continue; // Discard old news
-                }
-            }
 
             // Google News RSS titles append the publisher at the end, e.g. "Headline - Source"
             // We split by " - " and remove the last element to get a clean headline
@@ -94,6 +85,7 @@ function parseRssXml(xmlString) {
             else category = 'Top Story';
 
             // Parse pubDate to a premium relative time ago format
+            const pubDateObj = new Date(pubDate);
             let formattedDate = 'Today';
             try {
                 if (!isNaN(pubDateObj.getTime())) {
@@ -121,19 +113,36 @@ function parseRssXml(xmlString) {
                 formattedDate = 'Today';
             }
 
-            items.push({
+            allItems.push({
                 id: 'news_' + Math.random().toString(36).substr(2, 9),
                 title,
                 source,
                 date: formattedDate,
                 link,
                 category,
-                isLocalForCountry: true // Flag indicating it matches user country
+                isLocalForCountry: true, // Flag indicating it matches user country
+                pubDateObj
             });
         }
     }
 
-    return items;
+    // Filter for news under 48 hours to guarantee absolute daily freshness
+    let filteredItems = allItems.filter(item => {
+        if (isNaN(item.pubDateObj.getTime())) return true;
+        return (Date.now() - item.pubDateObj.getTime()) <= 172800000;
+    });
+
+    // If no items are under 48 hours, fall back to all parsed items
+    if (filteredItems.length === 0) {
+        filteredItems = allItems;
+    }
+
+    // Slice to first 6 items and remove temp pubDateObj
+    return filteredItems.slice(0, 6).map(item => {
+        const rest = { ...item };
+        delete rest.pubDateObj;
+        return rest;
+    });
 }
 
 export default async function handler(req, res) {

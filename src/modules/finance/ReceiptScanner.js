@@ -1,4 +1,4 @@
-import { getGenerativeModel } from 'firebase/ai';
+import { getGenerativeModel, Schema } from 'firebase/ai';
 import { ai } from '../../firebase';
 
 /**
@@ -50,11 +50,25 @@ export async function scanReceiptWithAI(file, envelopes) {
         // 1. Convert standard browser File to base64 inline part
         const imagePart = await fileToGenerativePart(file);
 
-        // 2. Initialize the generative model with JSON structured outputs enabled
+        // 2. Define strict JSON output schema with dynamic envelope enum constraints
+        const receiptSchema = Schema.object({
+            properties: {
+                merchant: Schema.string({ description: "The name of the store or service provider" }),
+                amount: Schema.number({ description: "Positive float of the total amount spent without currency symbols" }),
+                envelope: Schema.enumString({
+                    enum: envelopes,
+                    description: "The best matching envelope category"
+                }),
+                desc: Schema.string({ description: "A brief, professional summary of the items purchased (maximum 60 characters)" })
+            }
+        });
+
+        // 3. Initialize the generative model with JSON structured outputs and schema enabled
         const model = getGenerativeModel(ai, {
             model: 'gemini-flash-latest',
             generationConfig: {
-                responseMimeType: 'application/json'
+                responseMimeType: 'application/json',
+                responseSchema: receiptSchema
             }
         });
 

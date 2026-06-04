@@ -1,15 +1,27 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { Buffer } from 'buffer'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
     host: true,
     allowedHosts: true,
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        if (req.url && req.url.startsWith('/api/news')) {
+  },
+  plugins: [
+    {
+      name: 'api-news-proxy',
+      configureServer(server) {
+        setTimeout(() => {
+          console.log("=== CONNECT MIDDLEWARE STACK ===");
+          server.middlewares.stack.forEach((m, i) => {
+            console.log(`${i}: route="${m.route}" handle=${m.handle.name || typeof m.handle}`);
+          });
+          console.log("================================");
+        }, 1000);
+
+        server.middlewares.use('/api/news', async (req, res) => {
           try {
             const urlObj = new URL(req.url, 'http://localhost');
             const country = urlObj.searchParams.get('country') || 'US';
@@ -33,13 +45,15 @@ export default defineConfig({
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 UnifyApp'
                     }
                 }, (response) => {
-                    let data = '';
-                    response.on('data', (chunk) => { data += chunk; });
-                    response.on('end', () => resolve(data));
+                    const chunks = [];
+                    response.on('data', (chunk) => { chunks.push(chunk); });
+                    response.on('end', () => {
+                        resolve(Buffer.concat(chunks).toString('utf8'));
+                    });
                 }).on('error', reject);
             });
 
-            const items = [];
+            const allItems = [];
             const itemRegex = /<item>([\s\S]*?)<\/item>/g;
             const titleRegex = /<title>([\s\S]*?)<\/title>/i;
             const linkRegex = /<link>([\s\S]*?)<\/link>/i;
@@ -60,7 +74,7 @@ export default defineConfig({
             };
 
             let match;
-            while ((match = itemRegex.exec(xmlData)) !== null && items.length < 6) {
+            while ((match = itemRegex.exec(xmlData)) !== null) {
                 const itemContent = match[1];
                 const titleMatch = itemContent.match(titleRegex);
                 const linkMatch = itemContent.match(linkRegex);
@@ -73,56 +87,68 @@ export default defineConfig({
                     const pubDate = pubDateMatch ? cleanXml(pubDateMatch[1]) : new Date().toUTCString();
                     const source = sourceMatch ? cleanXml(sourceMatch[1]) : 'Google News';
 
-                    const pubDateObj = new Date(pubDate);
-                    // Only include news under 48 hours to guarantee absolute daily freshness
-                    if (!isNaN(pubDateObj.getTime()) && (Date.now() - pubDateObj.getTime() > 172800000)) {
-                        continue;
-                    }
-
                     const titleParts = rawTitle.split(' - ');
                     let title = rawTitle;
                     if (titleParts.length > 1) {
                         title = titleParts.slice(0, -1).join(' - ');
                     }
 
-                    let category = 'Top Story';
+                    // Generate localized categories based on title keywords
+                    let category = 'Local';
                     const lowerTitle = title.toLowerCase();
-                    if (lowerTitle.includes('covid') || lowerTitle.includes('health')) category = 'Health';
-                    else if (lowerTitle.includes('market') || lowerTitle.includes('economy')) category = 'Economy';
-                    else if (lowerTitle.includes('tech') || lowerTitle.includes('ai')) category = 'Technology';
-                    else if (lowerTitle.includes('sport') || lowerTitle.includes('cup')) category = 'Sports';
-                    else if (lowerTitle.includes('movie') || lowerTitle.includes('show')) category = 'Entertainment';
-                    else if (lowerTitle.includes('weather') || lowerTitle.includes('rain')) category = 'Weather';
-                    else if (lowerTitle.includes('protest') || lowerTitle.includes('elect')) category = 'Politics';
+                    if (lowerTitle.includes('covid') || lowerTitle.includes('health') || lowerTitle.includes('virus')) category = 'Health';
+                    else if (lowerTitle.includes('market') || lowerTitle.includes('inflation') || lowerTitle.includes('stocks') || lowerTitle.includes('economy')) category = 'Economy';
+                    else if (lowerTitle.includes('tech') || lowerTitle.includes('ai') || lowerTitle.includes('cyber') || lowerTitle.includes('apple') || lowerTitle.includes('google')) category = 'Technology';
+                    else if (lowerTitle.includes('sport') || lowerTitle.includes('cricket') || lowerTitle.includes('cup') || lowerTitle.includes('match')) category = 'Sports';
+                    else if (lowerTitle.includes('movie') || lowerTitle.includes('show') || lowerTitle.includes('star') || lowerTitle.includes('awards')) category = 'Entertainment';
+                    else if (lowerTitle.includes('weather') || lowerTitle.includes('rain') || lowerTitle.includes('monsoon') || lowerTitle.includes('storm')) category = 'Weather';
+                    else if (lowerTitle.includes('protest') || lowerTitle.includes('assembly') || lowerTitle.includes('elect') || lowerTitle.includes('minister') || lowerTitle.includes('police')) category = 'Politics';
+                    else category = 'Top Story';
 
-                    items.push({
+                    allItems.push({
                         id: 'news_' + Math.random().toString(36).substr(2, 9),
                         title,
                         source,
-                        date: pubDate, // Pass original date so the client can format it relative to client timezone
+                        date: pubDate,
                         link,
                         category,
-                        isLocalForCountry: true
+                        isLocalForCountry: true,
+                        pubDateObj: new Date(pubDate)
                     });
                 }
             }
 
+            let filteredItems = allItems.filter(item => {
+                if (isNaN(item.pubDateObj.getTime())) return true;
+                return (Date.now() - item.pubDateObj.getTime()) <= 172800000;
+            });
+
+            if (filteredItems.length === 0) {
+                filteredItems = allItems;
+            }
+
+            const finalItems = filteredItems.slice(0, 6).map(item => {
+                const rest = { ...item };
+                delete rest.pubDateObj;
+                return rest;
+            });
+
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-            res.end(JSON.stringify(items));
+            res.end(JSON.stringify(finalItems));
           } catch (e) {
             console.error('[Vite Serverless Dev Proxy] Error fetching news:', e);
             res.statusCode = 500;
             res.end(JSON.stringify({ error: 'Failed to retrieve news feed', details: e.message }));
           }
-        } else {
-          next();
-        }
-      });
-    }
-  },
-  plugins: [
+        });
+
+        // Move the registered middleware to the front of the stack
+        const proxyMiddleware = server.middlewares.stack.pop();
+        server.middlewares.stack.unshift(proxyMiddleware);
+      }
+    },
     react(),
     VitePWA({
       registerType: 'autoUpdate',

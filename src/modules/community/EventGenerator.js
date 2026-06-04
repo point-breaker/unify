@@ -1,4 +1,4 @@
-import { getGenerativeModel } from 'firebase/ai';
+import { getGenerativeModel, Schema } from 'firebase/ai';
 import { ai } from '../../firebase';
 
 /**
@@ -72,11 +72,28 @@ export async function generateLocalEvents(city, country) {
     try {
         console.log(`[AI Event Generator] Requesting synthesized local events for: ${cityName}, ${countryName} on ${todayStr}`);
 
-        // 1. Initialize Gemini Flash model with JSON output configuration
+        // 1. Define strict JSON output schema for local events list
+        const eventSchema = Schema.object({
+            properties: {
+                id: Schema.string({ description: "Unique url-safe ID for the event, e.g. kochi-art-expo" }),
+                title: Schema.string({ description: "Engaging name of the event customized to the city name" }),
+                newspaperSource: Schema.string({ description: "A local newspaper source or host organization appropriate for the city" }),
+                date: Schema.string({ description: "Formatted date of the event, e.g. June 2, 2026" }),
+                location: Schema.string({ description: "A realistic local landmark, park, coworking hub, or address in the city" }),
+                link: Schema.string({ description: "A high-quality relevant website or placeholder url like https://meetup.com" })
+            }
+        });
+
+        const eventsArraySchema = Schema.array({
+            items: eventSchema
+        });
+
+        // 2. Initialize Gemini Flash model with JSON output configuration and schema
         const model = getGenerativeModel(ai, {
             model: 'gemini-flash-latest',
             generationConfig: {
-                responseMimeType: 'application/json'
+                responseMimeType: 'application/json',
+                responseSchema: eventsArraySchema
             }
         });
 
